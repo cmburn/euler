@@ -1,0 +1,30 @@
+BasedOnStyle: WebKit
+ColumnLimit: 80
+PointerAlignment: Right
+TabWidth: 8
+UseTab: Always
+IndentWidth: 8
+AccessModifierOffset: -8
+AlignTrailingComments: true
+AllowShortBlocksOnASingleLine: Always
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortEnumsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+AllowShortLambdasOnASingleLine: All
+AllowShortLoopsOnASingleLine: true
+AllowAllArgumentsOnNextLine: false
+AlwaysBreakAfterReturnType: AllDefinitions
+BinPackArguments: true
+BinPackParameters: true
+NamespaceIndentation: None
+UseCRLF: false
+IncludeCategories:
+  - Regex: '^<sys/'
+    Priority: -4
+  - Regex: '^<net/'
+    Priority: -3
+  - Regex: '^<[^/]*>'
+    Priority: -2
+  - Regex: '^<.*'
+    Priority: -1
