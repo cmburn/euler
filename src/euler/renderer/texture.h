@@ -4,6 +4,7 @@
 #define EULER_RENDERER_TEXTURE_H
 #include <cstdint>
 #include <filesystem>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -24,7 +25,8 @@ public:
 	~Texture() override;
 
 	static Util::Reference<Texture> from_pixels(const SDL_Surface *surface);
-	static Util::Reference<Texture> from_pixels(std::span<const uint32_t> pixels,
+	static Util::Reference<Texture> from_pixels(
+	    std::span<const uint32_t> pixels,
 	    int width, int height);
 	static Util::Reference<Texture> from_file(const std::string &filename) {
 		return from_file(std::filesystem::path(filename));

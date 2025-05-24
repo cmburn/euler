@@ -77,9 +77,9 @@ public:
 };
 
 static std::string
-formatter_pattern(const std::string_view datetime = "%Y-%m-%dT%H:%M:%S.%6N")
+formatter_pattern(const std::string_view datetime = "%Y-%m-%dT%H:%M:%S.%06F")
 {
-	return fmt::format("%Q, [{} #%P] %5q -- %v", datetime);
+	return fmt::format("%Q, [{} #%P] %5q -- %n: %v", datetime);
 }
 
 static void

@@ -36,6 +36,7 @@ Euler::Renderer::Gui::Gui(const Util::Reference<Util::Logger> &logger,
     , _window(window)
 {
 	load_fonts(std::move(fonts));
+	_ctx = vk2dGuiContext();
 }
 
 void

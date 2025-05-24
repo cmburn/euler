@@ -1,4 +1,6 @@
 add_library(euler_renderer STATIC
+        application.cpp
+        application.h
         camera.cpp
         camera.h
         font.cpp
@@ -17,9 +19,9 @@ add_library(euler_renderer STATIC
         shadow_object.h
         texture.cpp
         texture.h
+        vma.cpp
         window.cpp
         window.h
-        vma.cpp
 )
 
 target_link_libraries(euler_renderer PUBLIC

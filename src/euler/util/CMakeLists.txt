@@ -16,7 +16,7 @@ add_library(euler_util STATIC
 target_link_libraries(euler_util PUBLIC
         fmt::fmt
         mruby_headers
-
+        SDL3-static
 )
 
 target_link_libraries(euler_util PRIVATE

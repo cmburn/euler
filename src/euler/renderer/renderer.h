@@ -4,8 +4,10 @@
 #define EULER_RENDERER_RENDERER_H
 
 #include "Eigen/Core"
-#include "gui.h"
-#include "window.h"
+
+#include "euler/renderer/application.h"
+#include "euler/renderer/gui.h"
+#include "euler/renderer/window.h"
 
 #include "euler/util/object.h"
 #include "euler/util/version.h"
@@ -38,14 +40,16 @@ public:
 	};
 
 	struct Config {
+		/* TODO: ask Paolo, `Validation: vkCreateSampler(): pCreateInfo
+		 *       anisotropyEnable and unnormalizedCoordinates are both
+		 *       VK_TRUE` when msaa != 1 */
 		MSAA msaa = MSAA::X1;
 		ScreenMode screen_mode = ScreenMode::VSync;
 		FilterType filter_type = FilterType::Linear;
 	};
 
 	static Config default_config();
-
-	Renderer(Util::Reference<Util::Logger> log
+	Renderer(const Util::Reference<Util::Logger> &log
 	    = Util::make_reference<Util::Logger>("Renderer"),
 	    const Config &config = default_config(),
 	    std::vector<Font> &&fonts = {});
@@ -57,8 +61,38 @@ public:
 	Config config() const;
 	void set_config(const Config &config);
 	void reset_swapchain();
-	bool loop(std::function<bool(SDL_Event *)> input_callback,
-		std::function<void()> gui_callback);
+	// bool process(const std::function<bool(SDL_Event *)> &input,
+	//     const std::function<bool()> &gui);
+	bool process();
+	void set_application(const Util::Reference<Application> &app) {
+		_app = app;
+	}
+	void set_application(const std::function<bool(SDL_Event *)> &input,
+	    const std::function<bool()> &gui);
+
+	[[nodiscard]] Util::Reference<Window>
+	window() const
+	{
+		return _window;
+	}
+
+	[[nodiscard]] Util::Reference<Application>
+	application() const
+	{
+		return _app;
+	}
+
+	[[nodiscard]] Util::Reference<Gui>
+	gui() const
+	{
+		return _gui;
+	}
+
+	[[nodiscard]] Util::Reference<Util::Logger>
+	log() const
+	{
+		return _log;
+	}
 
 private:
 	struct LoggerContext final : Object {
@@ -74,6 +108,7 @@ private:
 	Util::Reference<Util::Logger> _log;
 	Config _config;
 	Util::Reference<LoggerContext> _logger_context;
+	Util::Reference<Application> _app;
 };
 } /* namespace Euler::Renderer */
 

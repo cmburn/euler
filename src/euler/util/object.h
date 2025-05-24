@@ -27,6 +27,7 @@ unsafe_cast(const From &from)
  * get messy */
 template <typename T> class Reference {
 	friend class WeakReference<T>;
+	template <typename U> friend class Reference;
 
 private:
 	static void
@@ -69,6 +70,7 @@ public:
 	explicit Reference(T *object)
 	    : _object(object)
 	{
+		increment(_object);
 	}
 
 	Reference(const Reference &other)
@@ -86,7 +88,8 @@ public:
 		return *this;
 	}
 
-	WeakReference<T> weaken() const
+	WeakReference<T>
+	weaken() const
 	{
 		return WeakReference<T>(_object);
 	}
@@ -143,6 +146,13 @@ public:
 		return _object != nullptr;
 	}
 
+	template <typename U> Reference(Reference<U> other)
+	{
+		static_assert(std::is_convertible_v<U *, T *>);
+		_object = other._object;
+		other._object = nullptr;
+	}
+
 private:
 	T *_object = nullptr;
 };
@@ -161,6 +171,17 @@ public:
 	    : _object(object)
 	{
 	}
+	WeakReference(const WeakReference &other)
+	    : _object(other._object)
+	{
+	}
+	WeakReference &
+	operator=(const WeakReference &other)
+	{
+		if (_object != nullptr) _object = nullptr;
+		_object = other._object;
+		return *this;
+	}
 
 	Reference<T>
 	to_ref() const
@@ -174,7 +195,11 @@ public:
 		return to_ref();
 	}
 
-	explicit operator Reference<T>() const { return to_ref(); }
+	explicit
+	operator Reference<T>() const
+	{
+		return to_ref();
+	}
 
 	bool
 	operator==(const WeakReference &other) const
@@ -233,7 +258,24 @@ Reference<T>
 make_reference(Args &&...args)
 {
 	static_assert(std::is_base_of_v<Object, T>);
-	return Reference<T>(new T(std::forward<Args>(args)...));
+	auto ptr = new T(std::forward<Args>(args)...);
+	return Reference<T>(ptr);
+}
+
+template <typename T>
+Reference<T>
+make_reference(T *ptr)
+{
+	static_assert(std::is_base_of_v<Object, T>);
+	return Reference<T>(ptr);
+}
+
+template <typename T>
+Reference<T>
+make_reference(const T *ptr)
+{
+	static_assert(std::is_base_of_v<Object, T>);
+	return Reference<T>(const_cast<T *>(ptr));
 }
 
 } /* namespace Euler::MRuby */

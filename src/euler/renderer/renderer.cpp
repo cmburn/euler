@@ -8,6 +8,7 @@
 #include "VK2D/Structs.h"
 
 #include "euler/renderer/window.h"
+#include "euler/util/defer.h"
 #include "euler/util/logger.h"
 
 using LogReference = Euler::Util::Reference<Euler::Util::Logger>;
@@ -110,9 +111,9 @@ Euler::Renderer::Renderer::default_config()
 	return DEFAULT_CONFIG;
 }
 
-Euler::Renderer::Renderer::Renderer(Util::Reference<Util::Logger> log,
+Euler::Renderer::Renderer::Renderer(const Util::Reference<Util::Logger> &log,
     const Config &config, std::vector<Font> &&fonts)
-    : _config(config)
+    : _config(config), _log(log)
 {
 #ifdef EULER_MAX_TEXTURES
 	static constexpr size_t MAX_TEXTURES = EULER_MAX_TEXTURES;
@@ -120,6 +121,8 @@ Euler::Renderer::Renderer::Renderer(Util::Reference<Util::Logger> log,
 	static constexpr size_t MAX_TEXTURES = (1 << 14) - 1;
 #endif
 	assert(log != nullptr);
+	_logger_context = Util::make_reference<LoggerContext>(log);
+	vk2dSetLogger(_logger_context->ptr);
 	_window = Util::make_reference<Window>();
 	const VK2DRendererConfig vk2d_config = {
 		.msaa = to_vk2d(config.msaa),
@@ -135,9 +138,11 @@ Euler::Renderer::Renderer::Renderer(Util::Reference<Util::Logger> log,
 		.enableNuklear = true,
 		.vramPageSize = 0,
 	};
-	_logger_context = Util::make_reference<LoggerContext>(log);
-	vk2dSetLogger(_logger_context->ptr);
-	vk2dRendererInit(_window->window(), vk2d_config, &startup_options);
+	auto result = vk2dRendererInit(_window->window(), vk2d_config, &startup_options);
+	if (result != VK2D_SUCCESS) {
+		_log->fatal("Failed to initialize renderer: VK2D code {}",
+		    static_cast<int>(result));
+	}
 	_gui = Util::make_reference<Gui>(_log, _window, std::move(fonts));
 	_renderer = vk2dRendererGetPointer();
 }
@@ -161,12 +166,81 @@ Euler::Renderer::Renderer::reset_swapchain()
 {
 	vk2dRendererResetSwapchain();
 }
+// bool
+// Euler::Renderer::Renderer::loop(const std::function<bool(SDL_Event *)>
+// &input,
+//     const std::function<void()> &gui)
+// {
+// 	static constexpr vec4 CLEAR = { 0.0, 0.5, 1.0, 1.0 };
+// 	bool quit = false;
+// 	_gui->input([&]() {
+// 		SDL_Event e;
+// 		while (SDL_PollEvent(&e)) {
+// 			if (e.type == SDL_EVENT_QUIT) quit = true;
+// 			if (!input(&e)) quit = true;
+// 		}
+// 	});
+// 	{
+// 		vk2dRendererStartFrame(CLEAR);
+// 		DEFER([&]() { vk2dRendererEndFrame(); });
+// 		_gui->draw(gui);
+// 	}
+//
+// 	return !quit;
+// }
+
+void
+Euler::Renderer::Renderer::set_application(
+    const std::function<bool(SDL_Event *)> &input,
+    const std::function<bool()> &draw)
+{
+	struct LambdaApp : public Application {
+		bool
+		input(SDL_Event *e) override
+		{
+			return input_fn(e);
+		}
+		bool
+		draw() override
+		{
+			return draw_fn();
+		}
+		const std::function<bool(SDL_Event *)> &input_fn;
+		const std::function<bool()> &draw_fn;
+		LambdaApp(const Util::WeakReference<Renderer> &renderer,
+		    const std::function<bool(SDL_Event *)> &input,
+		    const std::function<bool()> &draw)
+		    : Application(renderer)
+		    , input_fn(input)
+		    , draw_fn(draw)
+		{
+		}
+	};
+	const auto app = Util::make_reference<LambdaApp>(
+	    Util::WeakReference(this), input, draw);
+	set_application(app);
+}
 
 bool
-Euler::Renderer::Renderer::loop(std::function<bool(SDL_Event *)> input_callback,
-    std::function<void()> gui_callback)
+Euler::Renderer::Renderer::process()
 {
-	return true;
+	static constexpr vec4 CLEAR = { 0.0, 0.5, 1.0, 1.0 };
+	bool quit = false;
+	_gui->input([&]() {
+		SDL_Event e;
+		while (SDL_PollEvent(&e)) {
+			if (e.type == SDL_EVENT_QUIT) quit = true;
+			if (!_app->input(&e)) quit = true;
+			_gui->process_event(&e);
+		}
+	});
+	{
+		vk2dRendererStartFrame(CLEAR);
+		DEFER([&]() { vk2dRendererEndFrame(); });
+		_gui->draw([&]() { quit = !_app->draw() || quit; });
+	}
+
+	return !quit;
 }
 
 Euler::Renderer::Renderer::LoggerContext::LoggerContext(
