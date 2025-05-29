@@ -7,7 +7,7 @@
 
 typedef struct VK2DPolygon_t *VK2DPolygon;
 
-namespace Euler::Renderer {
+namespace Euler::Graphics {
 class Polygon {
 public:
 	struct VertexColor {
@@ -20,7 +20,7 @@ public:
 private:
 	VK2DPolygon _polygon = nullptr;
 };
-} /* namespace Euler::Renderer */
+} /* namespace Euler::Graphics */
 
 #endif /* EULER_RENDERER_POLYGON_H */
 

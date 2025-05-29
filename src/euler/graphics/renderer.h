@@ -5,9 +5,9 @@
 
 #include "Eigen/Core"
 
-#include "euler/renderer/application.h"
-#include "euler/renderer/gui.h"
-#include "euler/renderer/window.h"
+#include "euler/graphics/application.h"
+#include "euler/graphics/gui.h"
+#include "euler/graphics/window.h"
 
 #include "euler/util/object.h"
 #include "euler/util/version.h"
@@ -15,7 +15,7 @@
 typedef struct VK2DRenderer_t *VK2DRenderer;
 typedef struct VK2DLogger VK2DLogger;
 
-namespace Euler::Renderer {
+namespace Euler::Graphics {
 class Renderer final : public Util::Object {
 public:
 	~Renderer() override;
@@ -110,6 +110,6 @@ private:
 	Util::Reference<LoggerContext> _logger_context;
 	Util::Reference<Application> _app;
 };
-} /* namespace Euler::Renderer */
+} /* namespace Euler::Graphics */
 
 #endif /* EULER_RENDERER_RENDERER_H */

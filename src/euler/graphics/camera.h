@@ -3,7 +3,7 @@
 #ifndef EULER_RENDERER_CAMERA_H
 #define EULER_RENDERER_CAMERA_H
 
-namespace Euler::Renderer {
+namespace Euler::Graphics {
 class Camera {
 public:
 	enum class Type {
@@ -44,7 +44,7 @@ public:
 private:
 	int _index = 0;
 };
-} /* namespace Euler::Renderer */
+} /* namespace Euler::Graphics */
 
 #endif /* EULER_RENDERER_CAMERA_H */
 

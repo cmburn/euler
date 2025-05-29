@@ -2,7 +2,8 @@
 
 #include <mutex>
 
-#include "euler/renderer/window.h"
+#include "euler/graphics/window.h"
+#include "euler/util/sdl.h"
 
 static constexpr int
 sdl_init_flags()
@@ -26,29 +27,21 @@ sdl_init_flags()
 	return flags;
 }
 
-Euler::Renderer::Window::Window(const std::string &title, const int width,
+Euler::Graphics::Window::Window(const std::string &title, const int width,
     const int height, const SDL_WindowFlags flags)
 {
+	Util::sdl_init();
 	_window = SDL_CreateWindow(title.c_str(), width, height, flags);
 }
 
-Euler::Renderer::Window::~Window()
+Euler::Graphics::Window::~Window()
 {
 	if (_window != nullptr) SDL_DestroyWindow(_window);
 }
 
-void
-Euler::Renderer::Window::global_init()
-{
-	static constexpr int SDL_INIT_FLAGS = sdl_init_flags();
-	static std::once_flag once;
-	std::call_once(once, []() {
-		SDL_Init(sdl_init_flags());
-	});
-}
 
 Eigen::Vector4f
-Euler::Renderer::Window::size() const
+Euler::Graphics::Window::size() const
 {
 	Eigen::Vector4f size;
 	int w, h, x, y;

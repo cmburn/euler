@@ -1,22 +1,23 @@
 /* SPDX-License-Identifier: ISC */
 
-#include "euler/renderer/gui.h"
-#include "euler/renderer/renderer.h"
+#include "euler/graphics/gui.h"
+#include "euler/graphics/renderer.h"
 
 #include "VK2D/nuklear_defs.h"
-#include "euler/renderer/application.h"
+#include "euler/graphics/application.h"
 
 using namespace Euler;
 
-class MainApp : public Renderer::Application {
+class MainApp : public Graphics::Application {
 public:
-	MainApp(const Util::WeakReference<Renderer::Renderer> &renderer)
+	MainApp(const Util::WeakReference<Graphics::Renderer> &renderer)
 	    : Application(renderer)
 	{
 	}
 
 	bool input(SDL_Event *e) override;
 	bool draw() override;
+	int op = 0;
 };
 
 bool
@@ -28,26 +29,24 @@ MainApp::input(SDL_Event *)
 bool
 MainApp::draw()
 {
+	// auto ctx = _gui->context();
+	// nk_layout_row_dynamic(ctx, 30, 2);
+	// if (nk_option_label(ctx, "easy", op == 0)) op = 0;
+	// if (nk_option_label(ctx, "hard", op == 1)) op = 1;
+
 	return true;
 }
 
 int
 main()
 {
-	auto renderer = Util::make_reference<Renderer::Renderer>();
+	auto renderer = Util::make_reference<Graphics::Renderer>();
 	auto app = Util::make_reference<MainApp>(renderer.weaken());
 	renderer->set_application(app);
 
-	// auto last_time = std::chrono::high_resolution_clock::now();
-	// while (renderer->process()) {
-	//     auto current_time = std::chrono::high_resolution_clock::now();
-	//     std::chrono::duration<double> elapsed = current_time - last_time;
-	//     printf("Elapsed time: %.6f seconds\n", elapsed.count());
-	//     last_time = current_time;
-	// }
-
 	auto last_report = std::chrono::high_resolution_clock::now();
 	double frame_count = 0;
+	uintmax_t frame_total = 0;
 	while (renderer->process()) {
 		if (auto delta
 		    = std::chrono::high_resolution_clock::now() - last_report;
@@ -58,7 +57,10 @@ main()
 			frame_count = 0;
 		}
 		++frame_count;
+		++frame_total;
 	}
+
+	renderer->log()->info("Processed {} frames", frame_total);
 
 	return 0;
 }

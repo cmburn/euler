@@ -4,6 +4,8 @@
 #define EULER_UTIL_DEFER_H
 #include <functional>
 
+#include "fmt/ostream.h"
+
 namespace Euler::Util {
 
 template <typename T, typename... Args> struct Defer {
@@ -15,7 +17,14 @@ template <typename T, typename... Args> struct Defer {
 
 	~Defer()
 	{
-		if (fn) fn();
+		try {
+			if (fn) fn();
+		} catch (std::exception &e) {
+			fmt::println(
+			    "FATAL: Exception thrown in deferred function: {}",
+			    e.what());
+			abort();
+		}
 	}
 };
 

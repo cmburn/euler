@@ -1,16 +1,16 @@
 /* SPDX-License-Identifier: ISC */
 
-#include "euler/renderer/gui.h"
+#include "euler/graphics/gui.h"
 
 #include "VK2D/Gui.h"
 
-#include "euler/renderer/window.h"
+#include "euler/graphics/window.h"
 #include "euler/util/defer.h"
 
 using FontInfo = std::pair<VK2DGuiFont, std::optional<struct nk_font_config>>;
 
 void
-Euler::Renderer::Gui::load_fonts(std::vector<Euler::Renderer::Font> &&fonts)
+Euler::Graphics::Gui::load_fonts(std::vector<Euler::Graphics::Font> &&fonts)
 {
 	if (fonts.empty()) return;
 	std::vector<VK2DGuiFont> vk2d_fonts;
@@ -30,7 +30,7 @@ Euler::Renderer::Gui::load_fonts(std::vector<Euler::Renderer::Font> &&fonts)
 	vk2dGuiLoadFonts(vk2d_fonts.data(), vk2d_fonts.size());
 }
 
-Euler::Renderer::Gui::Gui(const Util::Reference<Util::Logger> &logger,
+Euler::Graphics::Gui::Gui(const Util::Reference<Util::Logger> &logger,
     const Util::Reference<Window> &window, std::vector<Font> &&fonts)
     : _log(logger)
     , _window(window)
@@ -40,13 +40,13 @@ Euler::Renderer::Gui::Gui(const Util::Reference<Util::Logger> &logger,
 }
 
 void
-Euler::Renderer::Gui::process_event(SDL_Event *e)
+Euler::Graphics::Gui::process_event(SDL_Event *e)
 {
 	vk2dGuiProcessEvent(e);
 }
 
 void
-Euler::Renderer::Gui::draw(const std::function<void()> &fn)
+Euler::Graphics::Gui::draw(const std::function<void()> &fn)
 {
 	const auto vec = _window->size();
 	const struct nk_rect bounds = { vec[0], vec[1], vec[2], vec[3] };
@@ -56,7 +56,7 @@ Euler::Renderer::Gui::draw(const std::function<void()> &fn)
 }
 
 void
-Euler::Renderer::Gui::input(const std::function<void()> &fn)
+Euler::Graphics::Gui::input(const std::function<void()> &fn)
 {
 	vk2dGuiStartInput();
 	DEFER([] { vk2dGuiEndInput(); });
@@ -64,13 +64,13 @@ Euler::Renderer::Gui::input(const std::function<void()> &fn)
 }
 
 void
-Euler::Renderer::Gui::start_input()
+Euler::Graphics::Gui::start_input()
 {
 	vk2dGuiStartInput();
 }
 
 void
-Euler::Renderer::Gui::end_input()
+Euler::Graphics::Gui::end_input()
 {
 	vk2dGuiEndInput();
 }

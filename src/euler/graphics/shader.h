@@ -10,7 +10,7 @@
 
 typedef struct VK2DShader_t *VK2DShader;
 
-namespace Euler::Renderer {
+namespace Euler::Graphics {
 class Shader : public Util::Object {
 	Shader(VK2DShader shader);
 public:
@@ -30,7 +30,7 @@ public:
 private:
 	VK2DShader _shader;
 };
-} /* namespace Euler::Renderer */
+} /* namespace Euler::Graphics */
 
 #endif /* EULER_RENDERER_SHADER_H */
 

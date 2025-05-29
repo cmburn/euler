@@ -7,13 +7,13 @@
 
 #include "Eigen/Core"
 
-#include "euler/renderer/shadow_object.h"
+#include "euler/graphics/shadow_object.h"
 #include "euler/util/object.h"
 
 /* ReSharper disable once CppRedundantElaboratedTypeSpecifier */
 typedef struct VK2DShadowEnvironment_t *VK2DShadowEnvironment;
 
-namespace Euler::Renderer {
+namespace Euler::Graphics {
 class ShadowEnvironment;
 
 class ShadowEnvironment final : public Util::Object {
@@ -36,6 +36,6 @@ private:
 	VK2DShadowEnvironment _shadow_environment;
 	std::unordered_map<ShadowObject::ValueType, ShadowObject> _objects;
 };
-} /* namespace Euler::Renderer */
+} /* namespace Euler::Graphics */
 
 #endif /* EULER_RENDERER_SHADOW_ENVIRONMENT_H */

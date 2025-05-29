@@ -1,16 +1,16 @@
 /* SPDX-License-Identifier: ISC */
 
-#include "euler/renderer/shader.h"
+#include "euler/graphics/shader.h"
 
 #include "VK2D/Shader.h"
 
-Euler::Renderer::Shader::Shader(const VK2DShader shader)
+Euler::Graphics::Shader::Shader(const VK2DShader shader)
     : _shader(shader)
 {
 }
 
-Euler::Util::Reference<Euler::Renderer::Shader>
-Euler::Renderer::Shader::from_files(const std::filesystem::path &vertex,
+Euler::Util::Reference<Euler::Graphics::Shader>
+Euler::Graphics::Shader::from_files(const std::filesystem::path &vertex,
     const std::filesystem::path &fragment, const uint32_t uniform_size)
 {
 	if (!std::filesystem::exists(vertex)
@@ -25,8 +25,8 @@ Euler::Renderer::Shader::from_files(const std::filesystem::path &vertex,
 	return Util::Reference(s);
 }
 
-Euler::Util::Reference<Euler::Renderer::Shader>
-Euler::Renderer::Shader::from_buffers(std::span<const uint8_t> vertex,
+Euler::Util::Reference<Euler::Graphics::Shader>
+Euler::Graphics::Shader::from_buffers(std::span<const uint8_t> vertex,
     std::span<const uint8_t> fragment, uint32_t uniform_size)
 {
 	if (vertex.empty() || fragment.empty())
@@ -39,7 +39,7 @@ Euler::Renderer::Shader::from_buffers(std::span<const uint8_t> vertex,
 	return Util::Reference(s);
 }
 
-Euler::Renderer::Shader::~Shader()
+Euler::Graphics::Shader::~Shader()
 {
 	if (_shader != nullptr) vk2dShaderFree(_shader);
 }

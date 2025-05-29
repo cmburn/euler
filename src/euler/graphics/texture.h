@@ -16,7 +16,7 @@ typedef struct VK2DTexture_t *VK2DTexture;
 typedef struct VK2DImage_t *VK2DImage;
 /* ReSharper enable CppRedundantElaboratedTypeSpecifier */
 
-namespace Euler::Renderer {
+namespace Euler::Graphics {
 class Texture : public Util::Object {
 	Texture(VK2DTexture texture, VK2DImage image = nullptr);
 
@@ -45,6 +45,6 @@ private:
 	/* Only needed when loaded via pixels */
 	VK2DImage _image = nullptr;
 };
-} /* namespace Euler::Renderer */
+} /* namespace Euler::Graphics */
 
 #endif /* EULER_RENDERER_TEXTURE_H */

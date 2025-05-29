@@ -25,6 +25,7 @@ add_library(euler_renderer STATIC
 )
 
 target_link_libraries(euler_renderer PUBLIC
+        euler_util
         fmt::fmt
         Eigen3::Eigen
 )

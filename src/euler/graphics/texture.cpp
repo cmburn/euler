@@ -6,23 +6,23 @@
 #include "VK2D/Opaque.h"
 #include "VK2D/Renderer.h"
 #include "VK2D/Texture.h"
-#include "euler/renderer/texture.h"
+#include "euler/graphics/texture.h"
 #include "euler/util/thread.h"
 
-Euler::Renderer::Texture::~Texture()
+Euler::Graphics::Texture::~Texture()
 {
 	if (_texture != nullptr) vk2dTextureFree(_texture);
 	if (_image != nullptr) vk2dImageFree(_image);
 }
 
-Euler::Util::Reference<Euler::Renderer::Texture>
-Euler::Renderer::Texture::from_pixels(const SDL_Surface *surface)
+Euler::Util::Reference<Euler::Graphics::Texture>
+Euler::Graphics::Texture::from_pixels(const SDL_Surface *surface)
 {
 	assert(surface->format == SDL_PIXELFORMAT_RGBA32);
 	const int w = surface->w;
 	const int h = surface->h;
 	const void *pixels = surface->pixels;
-	const bool main_thread = Util::on_main_thread();
+	const bool main_thread = Util::is_main_thread();
 	const auto vk2d = vk2dRendererGetPointer();
 	auto image = vk2dImageFromPixels(vk2d->ld, pixels, w, h, main_thread);
 	if (image == nullptr)
@@ -37,12 +37,12 @@ Euler::Renderer::Texture::from_pixels(const SDL_Surface *surface)
 	return Util::Reference(t);
 }
 
-Euler::Util::Reference<Euler::Renderer::Texture>
-Euler::Renderer::Texture::from_pixels(const std::span<const uint32_t> pixels,
+Euler::Util::Reference<Euler::Graphics::Texture>
+Euler::Graphics::Texture::from_pixels(const std::span<const uint32_t> pixels,
     const int width, const int height)
 {
 	assert(pixels.size() == static_cast<size_t>(width * height));
-	const bool main_thread = Util::on_main_thread();
+	const bool main_thread = Util::is_main_thread();
 	const auto vk2d = vk2dRendererGetPointer();
 	auto image = vk2dImageFromPixels(vk2d->ld, pixels.data(), width, height,
 	    main_thread);
@@ -58,8 +58,8 @@ Euler::Renderer::Texture::from_pixels(const std::span<const uint32_t> pixels,
 	return Util::Reference(t);
 }
 
-Euler::Util::Reference<Euler::Renderer::Texture>
-Euler::Renderer::Texture::from_file(const std::filesystem::path &filename)
+Euler::Util::Reference<Euler::Graphics::Texture>
+Euler::Graphics::Texture::from_file(const std::filesystem::path &filename)
 {
 	if (!std::filesystem::exists(filename))
 		throw std::runtime_error("File does not exist");
@@ -71,8 +71,8 @@ Euler::Renderer::Texture::from_file(const std::filesystem::path &filename)
 	throw std::runtime_error("Failed to create texture from file");
 }
 
-Euler::Util::Reference<Euler::Renderer::Texture>
-Euler::Renderer::Texture::from_memory(const std::span<const uint8_t> data)
+Euler::Util::Reference<Euler::Graphics::Texture>
+Euler::Graphics::Texture::from_memory(const std::span<const uint8_t> data)
 {
 	assert(data.size() <= INT_MAX);
 	const auto texture
@@ -86,25 +86,25 @@ Euler::Renderer::Texture::from_memory(const std::span<const uint8_t> data)
 }
 
 float
-Euler::Renderer::Texture::width() const
+Euler::Graphics::Texture::width() const
 {
 	return vk2dTextureWidth(_texture);
 }
 
 float
-Euler::Renderer::Texture::height() const
+Euler::Graphics::Texture::height() const
 {
 	return vk2dTextureHeight(_texture);
 }
 
 bool
-Euler::Renderer::Texture::is_target() const
+Euler::Graphics::Texture::is_target() const
 {
 	return vk2dTextureIsTarget(_texture);
 }
 
 uint32_t
-Euler::Renderer::Texture::id() const
+Euler::Graphics::Texture::id() const
 {
 	return vk2dTextureGetID(_texture);
 }

@@ -10,7 +10,7 @@
 
 #include "euler/util/object.h"
 
-namespace Euler::Renderer {
+namespace Euler::Graphics {
 class Window : public Util::Object {
 public:
 	static constexpr auto DEFAULT_FLAGS = SDL_WINDOW_VULKAN
@@ -32,6 +32,6 @@ private:
 	std::string _title;
 	SDL_Window *_window = nullptr;
 };
-} /* namespace Euler::Renderer */
+} /* namespace Euler::Graphics */
 
 #endif /* EULER_RENDERER_WINDOW_H */

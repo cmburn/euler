@@ -7,7 +7,7 @@
 
 #include "euler/util/object.h"
 
-namespace Euler::Renderer {
+namespace Euler::Graphics {
 class ShadowEnvironment;
 
 /* TODO: Turn WeakReference<ShadowEnvironment> into Reference<> when
@@ -38,7 +38,7 @@ private:
 	Util::WeakReference<ShadowEnvironment> _environment;
 };
 
-} /* namespace Euler::Renderer */
+} /* namespace Euler::Graphics */
 
 #endif /* EULER_RENDERER_SHADOW_OBJECT_H */
 

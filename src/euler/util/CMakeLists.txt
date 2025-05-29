@@ -11,6 +11,10 @@ add_library(euler_util STATIC
         thread.h
         version.cpp
         version.h
+        sdl.cpp
+        sdl.h
+        geometry.cpp
+        geometry.h
 )
 
 target_link_libraries(euler_util PUBLIC

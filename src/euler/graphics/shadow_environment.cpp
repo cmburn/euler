@@ -4,23 +4,23 @@
 
 #include "VK2D/Constants.h"
 #include "VK2D/ShadowEnvironment.h"
-#include "euler/renderer/shadow_environment.h"
+#include "euler/graphics/shadow_environment.h"
 
-Euler::Renderer::ShadowEnvironment::ShadowEnvironment()
+Euler::Graphics::ShadowEnvironment::ShadowEnvironment()
     : _shadow_environment(vk2dShadowEnvironmentCreate())
 {
 	if (_shadow_environment == nullptr)
 		throw std::runtime_error("Failed to create shadow environment");
 }
 
-Euler::Renderer::ShadowEnvironment::~ShadowEnvironment()
+Euler::Graphics::ShadowEnvironment::~ShadowEnvironment()
 {
 	if (_shadow_environment != nullptr)
 		vk2dShadowEnvironmentFree(_shadow_environment);
 }
 
-Euler::Util::Reference<Euler::Renderer::ShadowObject>
-Euler::Renderer::ShadowEnvironment::add_object()
+Euler::Util::Reference<Euler::Graphics::ShadowObject>
+Euler::Graphics::ShadowEnvironment::add_object()
 {
 	auto obj = vk2dShadowEnvironmentAddObject(_shadow_environment);
 	if (obj == VK2D_INVALID_SHADOW_OBJECT)

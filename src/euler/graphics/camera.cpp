@@ -1,4 +1,4 @@
 /* SPDX-License-Identifier: ISC */
 
-#include "euler/renderer/camera.h"
+#include "euler/graphics/camera.h"
 

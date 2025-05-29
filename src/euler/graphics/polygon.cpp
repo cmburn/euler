@@ -1,10 +1,10 @@
 /* SPDX-License-Identifier: ISC */
 
-#include "euler/renderer/polygon.h"
+#include "euler/graphics/polygon.h"
 
 #include "VK2D/Polygon.h"
 
-Euler::Renderer::Polygon::Polygon(const std::vector<VertexColor> &vertices)
+Euler::Graphics::Polygon::Polygon(const std::vector<VertexColor> &vertices)
 {
 	std::vector<VK2DVertexColour> vk2d_vertices;
 	vk2d_vertices.reserve(vertices.size());
@@ -20,7 +20,7 @@ Euler::Renderer::Polygon::Polygon(const std::vector<VertexColor> &vertices)
 		throw std::runtime_error("Failed to create polygon");
 }
 
-Euler::Renderer::Polygon::Polygon(const std::vector<Eigen::Vector2f> &vertices,
+Euler::Graphics::Polygon::Polygon(const std::vector<Eigen::Vector2f> &vertices,
     const bool filled)
 {
 	auto vk2d_vertices = new vec2[vertices.size()];
@@ -34,7 +34,7 @@ Euler::Renderer::Polygon::Polygon(const std::vector<Eigen::Vector2f> &vertices,
 	delete[] vk2d_vertices;
 }
 
-Euler::Renderer::Polygon::~Polygon()
+Euler::Graphics::Polygon::~Polygon()
 {
 	if (_polygon != nullptr) vk2dPolygonFree(_polygon);
 	_polygon = nullptr;

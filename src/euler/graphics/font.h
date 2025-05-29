@@ -16,7 +16,7 @@
 struct VK2DGuiFont;
 struct nk_font_config;
 
-namespace Euler::Renderer {
+namespace Euler::Graphics {
 class Gui;
 
 class Font final : public Util::Object {
@@ -62,6 +62,6 @@ private:
 	std::string _name;
 	float _height = 0.0f;
 };
-} /* namespace Euler::Renderer */
+} /* namespace Euler::Graphics */
 
 #endif /* EULER_RENDERER_FONT_H */

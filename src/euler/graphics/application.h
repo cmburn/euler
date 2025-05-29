@@ -7,7 +7,7 @@
 #include "euler/util/object.h"
 #include "gui.h"
 
-namespace Euler::Renderer {
+namespace Euler::Graphics {
 class Renderer;
 
 class Application : public Util::Object {
@@ -18,16 +18,16 @@ public:
 	virtual bool draw() = 0;
 	Util::Reference<Renderer> renderer() const;
 
-	Util::Reference<Gui> gui() const {
+	Util::Reference<Gui>
+	gui() const
+	{
 		return _gui;
 	}
 
 protected:
 	Util::WeakReference<Renderer> _renderer;
 	Util::Reference<Gui> _gui;
-
 };
-} /* namespace Euler::Renderer */
+} /* namespace Euler::Graphics */
 
 #endif /* EULER_RENDERER_APPLICATION_H */
-
