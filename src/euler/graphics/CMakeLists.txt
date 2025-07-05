@@ -22,6 +22,10 @@ add_library(euler_renderer STATIC
         vma.cpp
         window.cpp
         window.h
+        color.cpp
+        color.h
+        symbol.cpp
+        symbol.h
 )
 
 target_link_libraries(euler_renderer PUBLIC
