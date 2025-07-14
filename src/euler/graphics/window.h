@@ -10,8 +10,8 @@
 
 #include "euler/util/object.h"
 
-namespace Euler::Graphics {
-class Window : public Util::Object {
+namespace euler::graphics {
+class Window : public util::Object {
 public:
 	static constexpr auto DEFAULT_FLAGS = SDL_WINDOW_VULKAN
 	    | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY;
@@ -22,7 +22,6 @@ public:
 	    SDL_WindowFlags flags = DEFAULT_FLAGS);
 	~Window() override;
 
-	static void global_init();
 	Eigen::Vector4f size() const;
 	const std::string &title() const { return _title; }
 	SDL_Window *window() { return _window; }

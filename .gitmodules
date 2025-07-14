@@ -19,3 +19,9 @@
 [submodule "extern/eigen"]
 	path = extern/eigen
 	url = https://gitlab.com/libeigen/eigen/
+[submodule "extern/box2d"]
+	path = extern/box2d
+	url = https://github.com/erincatto/box2d
+[submodule "extern/physfs"]
+	path = extern/physfs
+	url = https://github.com/icculus/physfs/

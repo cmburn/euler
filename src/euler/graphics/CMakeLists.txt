@@ -1,39 +1,25 @@
-add_library(euler_renderer STATIC
-        application.cpp
-        application.h
+add_library(euler_graphics STATIC
         camera.cpp
         camera.h
-        font.cpp
-        font.h
-        gui.cpp
-        gui.h
-        polygon.cpp
-        polygon.h
-        renderer.cpp
-        renderer.h
-        shader.cpp
-        shader.h
-        shadow_environment.cpp
-        shadow_environment.h
-        shadow_object.cpp
-        shadow_object.h
-        texture.cpp
-        texture.h
-        vma.cpp
-        window.cpp
-        window.h
         color.cpp
         color.h
-        symbol.cpp
-        symbol.h
+        ext.cpp
+        ext.h
+        font.cpp
+        font.h
+        polygon.cpp
+        polygon.h
+        text.cpp
+        text.h
+        window.cpp
+        window.h
 )
 
-target_link_libraries(euler_renderer PUBLIC
+target_link_libraries(euler_graphics PUBLIC
         euler_util
-        fmt::fmt
         Eigen3::Eigen
 )
 
-target_link_libraries(euler_renderer PRIVATE
+target_link_libraries(euler_graphics PRIVATE
         Vulkan2D
 )

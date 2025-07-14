@@ -7,7 +7,7 @@
 
 #include <vulkan/vulkan_core.h>
 
-namespace Euler::Util {
+namespace euler::util {
 
 class Version {
 public:

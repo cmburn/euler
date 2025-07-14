@@ -4,11 +4,11 @@
 #define EULER_GRAPHICS_COLOR_H
 
 #include <cstdint>
+#include <SDL3/SDL_pixels.h>
 
-#include "SDL3/SDL_pixels.h"
 #include "euler/util/object.h"
 
-namespace Euler::Graphics {
+namespace euler::graphics {
 class Color {
 public:
 	constexpr Color(const SDL_Color color)

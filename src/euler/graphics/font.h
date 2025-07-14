@@ -16,10 +16,10 @@
 struct VK2DGuiFont;
 struct nk_font_config;
 
-namespace Euler::Graphics {
+namespace euler::graphics {
 class Gui;
 
-class Font final : public Util::Object {
+class Font final : public util::Object {
 	friend class Gui;
 
 public:

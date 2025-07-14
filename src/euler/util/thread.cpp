@@ -3,20 +3,21 @@
 #include <cassert>
 
 #include "euler/util/thread.h"
+#include "euler/util/sdl.h"
 
 #include <thread>
 
 #include "SDL3/SDL_init.h"
-#include "euler/util/sdl.h"
+
 
 bool
-Euler::Util::is_main_thread()
+euler::util::is_main_thread()
 {
 	return SDL_IsMainThread();
 }
 
 bool
-Euler::Util::run_on_main_thread(const Callback &fn, const bool wait_complete)
+euler::util::run_on_main_thread(const Callback &fn, const bool wait_complete)
 {
 	assert(is_sdl_init());
 	if (is_main_thread()) {

@@ -1,13 +1,12 @@
-/* SPDX-License-Identifier: ISC */
+/* SPDX-License-Identifier: ISC OR Apache-2.0 WITH LLVM-exception */
 
-#ifndef EULER_GUI_TEXT_H
-#define EULER_GUI_TEXT_H
+#ifndef EULER_GRAPHICS_TEXT_H
+#define EULER_GRAPHICS_TEXT_H
 
-namespace Euler::Graphics {
-class Text {
-public:
-};
-} /* namespace Euler::Graphics */
+namespace euler::graphics {
+class Text { };
+} /* namespace euler::graphics */
 
-#endif /* EULER_GUI_TEXT_H */
+
+#endif /* EULER_GRAPHICS_TEXT_H */
 

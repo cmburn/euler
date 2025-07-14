@@ -27,21 +27,21 @@ sdl_init_flags()
 	return flags;
 }
 
-Euler::Graphics::Window::Window(const std::string &title, const int width,
+euler::graphics::Window::Window(const std::string &title, const int width,
     const int height, const SDL_WindowFlags flags)
 {
-	Util::sdl_init();
+	util::sdl_init();
 	_window = SDL_CreateWindow(title.c_str(), width, height, flags);
 }
 
-Euler::Graphics::Window::~Window()
+euler::graphics::Window::~Window()
 {
 	if (_window != nullptr) SDL_DestroyWindow(_window);
 }
 
 
 Eigen::Vector4f
-Euler::Graphics::Window::size() const
+euler::graphics::Window::size() const
 {
 	Eigen::Vector4f size;
 	int w, h, x, y;

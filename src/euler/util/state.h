@@ -3,9 +3,29 @@
 #ifndef EULER_MRUBY_STATE_H
 #define EULER_MRUBY_STATE_H
 
-namespace Euler::MRuby {
-class State { };
+#include "euler/util/logger.h"
+#include "euler/util/object.h"
+
+namespace euler::util {
+class Storage;
+
+/* pure virtual class; the actual state is implemented in engine::State */
+class State : public Object {
+protected:
+	void init_fs(const char *argv0 = nullptr);
+	void deinit_fs();
+
+	State()
+	    : Object(StateArg {})
+	{
+		_state = WeakReference(this);
+	}
+public:
+	~State() override = default;
+	[[nodiscard]] virtual mrb_state *mruby_state() const = 0;
+	[[nodiscard]] virtual Reference<Logger> log() const = 0;
+	[[nodiscard]] virtual Reference<Storage> storage() const = 0;
+};
 } /* namespace Euler::MRuby */
 
 #endif /* EULER_MRUBY_STATE_H */
-

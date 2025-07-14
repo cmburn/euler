@@ -3,7 +3,7 @@
 #ifndef EULER_RENDERER_CAMERA_H
 #define EULER_RENDERER_CAMERA_H
 
-namespace Euler::Graphics {
+namespace euler::graphics {
 class Camera {
 public:
 	enum class Type {
@@ -39,7 +39,6 @@ public:
 	Spec spec();
 	void set_state(State state);
 	State state();
-
 
 private:
 	int _index = 0;

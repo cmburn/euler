@@ -3,15 +3,14 @@
 #ifndef EULER_UTIL_LOGGER_H
 #define EULER_UTIL_LOGGER_H
 
+#include <format>
 #include <memory>
 #include <string_view>
-#include <cstddef>
 
 #include "euler/util/object.h"
-#include "fmt/format.h"
 
-namespace Euler::Util {
-class Logger : public Object {
+namespace euler::util {
+class Logger final : public Object {
 public:
 	enum class Severity {
 		Debug,
@@ -25,55 +24,55 @@ public:
 	static constexpr std::string_view DEFAULT_DATETIME_FORMAT
 	    = "%Y-%m-%dT%H:%M:%S.%6N";
 
-	Logger(Severity severity = Severity::Debug,
+	Logger(Reference<State>, Severity severity = Severity::Debug,
 	    std::string_view progname = "euler",
 	    std::string_view datetime_format = DEFAULT_DATETIME_FORMAT);
 
-	Logger(const std::string_view progname)
-	    : Logger(Severity::Debug, progname, DEFAULT_DATETIME_FORMAT)
+	Logger(Reference<State> state, const std::string_view progname)
+	    : Logger(state, Severity::Debug, progname, DEFAULT_DATETIME_FORMAT)
 	{
 	}
 
 	template <typename... Args>
 	void
-	add(const Severity severity, const fmt::format_string<Args...> message,
+	add(const Severity severity, const std::format_string<Args...> message,
 	    Args &&...args) const
 	{
-		auto str = fmt::format(message, std::forward<Args>(args)...);
+		auto str = std::format(message, std::forward<Args>(args)...);
 		write_log(severity, str);
 	}
 
 	template <typename... Args>
 	void
-	debug(const fmt::format_string<Args...> message, Args &&...args) const
+	debug(const std::format_string<Args...> message, Args &&...args) const
 	{
 		add(Severity::Debug, message, std::forward<Args>(args)...);
 	}
 
 	template <typename... Args>
 	void
-	info(const fmt::format_string<Args...> message, Args &&...args) const
+	info(const std::format_string<Args...> message, Args &&...args) const
 	{
 		add(Severity::Info, message, std::forward<Args>(args)...);
 	}
 
 	template <typename... Args>
 	void
-	warn(const fmt::format_string<Args...> message, Args &&...args) const
+	warn(const std::format_string<Args...> message, Args &&...args) const
 	{
 		add(Severity::Warn, message, std::forward<Args>(args)...);
 	}
 
 	template <typename... Args>
 	void
-	error(const fmt::format_string<Args...> message, Args &&...args) const
+	error(const std::format_string<Args...> message, Args &&...args) const
 	{
 		add(Severity::Error, message, std::forward<Args>(args)...);
 	}
 
 	template <typename... Args>
 	[[noreturn]] void
-	fatal(const fmt::format_string<Args...> message, Args &&...args) const
+	fatal(const std::format_string<Args...> message, Args &&...args) const
 	{
 		add(Severity::Fatal, message, std::forward<Args>(args)...);
 		std::abort();
@@ -81,7 +80,7 @@ public:
 
 	template <typename... Args>
 	void
-	log(const Severity severity, const fmt::format_string<Args...> message,
+	log(const Severity severity, const std::format_string<Args...> message,
 	    Args &&...args) const
 	{
 		add(severity, message, std::forward<Args>(args)...);

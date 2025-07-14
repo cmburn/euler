@@ -9,8 +9,9 @@
 
 #include "mruby.h"
 
-namespace Euler::Util {
-
+namespace euler::util {
+class State;
+class Object;
 template <typename T> class WeakReference;
 template <typename T> class Reference;
 
@@ -25,6 +26,106 @@ unsafe_cast(const From &from)
 
 /* Can't use shared_ptr since we need to fit this in a void *, otherwise things
  * get messy */
+
+template <typename T> class WeakReference {
+	friend class Reference<T>;
+
+public:
+	WeakReference() = default;
+	WeakReference(std::nullptr_t)
+	    : _object(nullptr)
+	{
+	}
+	~WeakReference() = default;
+	explicit WeakReference(T *object)
+	    : _object(object)
+	{
+	}
+	WeakReference(const WeakReference &other)
+	    : _object(other._object)
+	{
+	}
+	WeakReference &
+	operator=(const WeakReference &other)
+	{
+		if (_object != nullptr) _object = nullptr;
+		_object = other._object;
+		return *this;
+	}
+
+	Reference<T>
+	strengthen() const
+	{
+		return Reference<T>(_object);
+	}
+
+	explicit
+	operator Reference<T>() const
+	{
+		return strengthen();
+	}
+
+	bool
+	operator==(const WeakReference &other) const
+	{
+		return _object == other._object;
+	}
+
+	bool
+	operator==(std::nullptr_t) const
+	{
+		return _object == nullptr;
+	}
+
+private:
+	T *_object = nullptr;
+};
+
+class Object {
+	template <typename T> friend class Reference;
+	template <typename T> friend class WeakReference;
+	friend class State;
+
+public:
+	Object(Reference<State> state);
+	Object(WeakReference<State> state);
+	virtual ~Object() = default;
+
+	[[nodiscard]] uint32_t
+	reference_count() const
+	{
+		return _count;
+	}
+
+	Reference<State> state() const;
+
+protected:
+	Object(Object *parent);
+
+	template <typename T, typename... Args>
+	Reference<T>
+	make_object(Args &&...args)
+	{
+		auto ptr = new T(state(), std::forward<Args>(args)...);
+		return Reference<T>(ptr);
+	}
+
+private:
+	/* We're in a weird position because State is also an object, but
+	 * all Objects need a State reference. All objects except for State
+	 * must be passed a State reference in their constructor. This private
+	 * constructor allows us to create an Object without a State.
+	 */
+	struct StateArg {};
+	explicit Object(StateArg)
+	    : _count(1)
+	{
+	}
+
+	WeakReference<State> _state;
+	std::atomic<uint32_t> _count;
+};
+
 template <typename T> class Reference {
 	friend class WeakReference<T>;
 	template <typename U> friend class Reference;
@@ -60,7 +161,6 @@ public:
 		decrement(_object);
 	}
 
-	// static_assert(std::is_base_of_v<Object, T>);
 	Reference() = default;
 	Reference(std::nullptr_t)
 	    : _object(nullptr)
@@ -157,90 +257,6 @@ private:
 	T *_object = nullptr;
 };
 
-template <typename T> class WeakReference {
-	friend class Reference<T>;
-
-public:
-	WeakReference() = default;
-	WeakReference(std::nullptr_t)
-	    : _object(nullptr)
-	{
-	}
-	~WeakReference() = default;
-	explicit WeakReference(T *object)
-	    : _object(object)
-	{
-	}
-	WeakReference(const WeakReference &other)
-	    : _object(other._object)
-	{
-	}
-	WeakReference &
-	operator=(const WeakReference &other)
-	{
-		if (_object != nullptr) _object = nullptr;
-		_object = other._object;
-		return *this;
-	}
-
-	Reference<T>
-	to_ref() const
-	{
-		return Reference<T>(_object);
-	}
-
-	Reference<T>
-	operator->() const
-	{
-		return to_ref();
-	}
-
-	explicit
-	operator Reference<T>() const
-	{
-		return to_ref();
-	}
-
-	bool
-	operator==(const WeakReference &other) const
-	{
-		return _object == other._object;
-	}
-
-	bool
-	operator==(std::nullptr_t) const
-	{
-		return _object == nullptr;
-	}
-
-private:
-	T *_object = nullptr;
-};
-
-class Object {
-	template <typename T> friend class Reference;
-	template <typename T> friend class WeakReference;
-
-public:
-	Object()
-	    : _count(1)
-	{
-	}
-
-	virtual ~Object() = default;
-
-	mrb_state *mrb() const;
-
-	[[nodiscard]] uint32_t
-	reference_count() const
-	{
-		return _count;
-	}
-
-private:
-	std::atomic<uint32_t> _count;
-};
-
 namespace detail {
 static constexpr size_t
 sizeof_reference()
@@ -251,7 +267,7 @@ sizeof_reference()
 }
 
 static_assert(sizeof(void *) == detail::sizeof_reference(),
-    "Size of Reference<T> must be the same as a void *");
+    "Size of Reference<T> must be the same size as void *");
 
 template <typename T, typename... Args>
 Reference<T>

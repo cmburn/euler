@@ -30,7 +30,7 @@ sdl_init_flags()
 
 
 void
-Euler::Util::sdl_init()
+euler::util::sdl_init()
 {
 	static std::once_flag once;
 	std::call_once(once, []() {
@@ -40,7 +40,7 @@ Euler::Util::sdl_init()
 }
 
 bool
-Euler::Util::is_sdl_init()
+euler::util::is_sdl_init()
 {
 	return SDL_WasInit(sdl_init_flags()) != 0;
 }

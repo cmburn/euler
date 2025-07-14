@@ -3,7 +3,7 @@
 #ifndef EULER_UTIL_SDL_H
 #define EULER_UTIL_SDL_H
 
-namespace Euler::Util {
+namespace euler::util {
 
 void sdl_init();
 bool is_sdl_init();

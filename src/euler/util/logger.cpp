@@ -6,9 +6,9 @@
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"
 
-using Severity = Euler::Util::Logger::Severity;
+using Severity = euler::util::Logger::Severity;
 
-struct Euler::Util::Logger::logger final : spdlog::logger {
+struct euler::util::Logger::logger final : spdlog::logger {
 	using spdlog::logger::logger;
 	template <typename... Args>
 	logger(Args &&...args)
@@ -79,7 +79,7 @@ public:
 static std::string
 formatter_pattern(const std::string_view datetime = "%Y-%m-%dT%H:%M:%S.%06F")
 {
-	return fmt::format("%Q, [{} #%P] %5q -- %n: %v", datetime);
+	return std::format("%Q, [{} #%P] %5q -- %n: %v", datetime);
 }
 
 static void
@@ -101,8 +101,8 @@ to_spdlog_level(const Severity severity)
 }
 
 template <typename T>
-std::shared_ptr<Euler::Util::Logger::logger>
-Euler::Util::Logger::make_logger(const std::string_view progname,
+std::shared_ptr<euler::util::Logger::logger>
+euler::util::Logger::make_logger(const std::string_view progname,
     const Severity severity, std::shared_ptr<T> sink)
 {
 	auto log = std::make_shared<logger>(progname.data(), sink);
@@ -111,8 +111,9 @@ Euler::Util::Logger::make_logger(const std::string_view progname,
 	return log;
 }
 
-Euler::Util::Logger::Logger(const Severity severity,
+euler::util::Logger::Logger(Reference<State> state, const Severity severity,
     const std::string_view progname, const std::string_view datetime_format)
+    : Object(state)
 {
 	std::call_once(logger_once, populate_static);
 	_progname = progname;
@@ -125,7 +126,7 @@ Euler::Util::Logger::Logger(const Severity severity,
 }
 
 void
-Euler::Util::Logger::write_log(const Severity severity,
+euler::util::Logger::write_log(const Severity severity,
     const std::string_view message) const
 {
 	if (severity < level()) return;

@@ -5,7 +5,7 @@
 #include "VK2D/Gui.h"
 
 void
-Euler::Graphics::Font::populate_info(VK2DGuiFont *font,
+euler::graphics::Font::populate_info(VK2DGuiFont *font,
     struct nk_font_config *config)
 {
 	font->height = _height;

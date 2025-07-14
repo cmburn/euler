@@ -5,7 +5,7 @@
 
 #include <functional>
 
-namespace Euler::Util {
+namespace euler::util {
 
 using Callback = std::function<void()>;
 

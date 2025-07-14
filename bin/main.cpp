@@ -6,11 +6,11 @@
 #include "VK2D/nuklear_defs.h"
 #include "euler/graphics/application.h"
 
-using namespace Euler;
+using namespace euler;
 
-class MainApp : public Graphics::Application {
+class MainApp : public graphics::Application {
 public:
-	MainApp(const Util::WeakReference<Graphics::Renderer> &renderer)
+	MainApp(const util::WeakReference<graphics::Renderer> &renderer)
 	    : Application(renderer)
 	{
 	}
@@ -29,10 +29,10 @@ MainApp::input(SDL_Event *)
 bool
 MainApp::draw()
 {
-	// auto ctx = _gui->context();
-	// nk_layout_row_dynamic(ctx, 30, 2);
-	// if (nk_option_label(ctx, "easy", op == 0)) op = 0;
-	// if (nk_option_label(ctx, "hard", op == 1)) op = 1;
+	auto ctx = _gui->context();
+	nk_layout_row_dynamic(ctx, 30, 2);
+	if (nk_option_label(ctx, "easy", op == 0)) op = 0;
+	if (nk_option_label(ctx, "hard", op == 1)) op = 1;
 
 	return true;
 }
@@ -40,8 +40,8 @@ MainApp::draw()
 int
 main()
 {
-	auto renderer = Util::make_reference<Graphics::Renderer>();
-	auto app = Util::make_reference<MainApp>(renderer.weaken());
+	auto renderer = util::make_reference<graphics::Renderer>();
+	auto app = util::make_reference<MainApp>(renderer.weaken());
 	renderer->set_application(app);
 
 	auto last_report = std::chrono::high_resolution_clock::now();

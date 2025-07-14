@@ -7,7 +7,7 @@
 
 typedef struct VK2DPolygon_t *VK2DPolygon;
 
-namespace Euler::Graphics {
+namespace euler::graphics {
 class Polygon {
 public:
 	struct VertexColor {
