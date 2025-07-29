@@ -50,7 +50,7 @@ class ClassCreator
     else
       <<~END_SRC
         namespace #{namespace.join('::')} {
-        #{no_class ? '' : "class #{camel_case} { };"}
+        #{no_class ? '' : "class #{camel_case} final : util::Object { };"}
         } /* namespace #{namespace.join('::')} */
       END_SRC
     end
@@ -62,6 +62,8 @@ class ClassCreator
 
       #ifndef #{header_guard}
       #define #{header_guard}
+
+      #include "euler/util/object.h"
 
       #{body}
 

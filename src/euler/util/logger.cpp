@@ -1,135 +1,181 @@
 /* SPDX-License-Identifier: ISC */
 
+#include <cassert>
+#include <filesystem>
+#include <mutex>
+#include <ranges>
+#include <unordered_map>
+
+#include <SDL3/SDL_time.h>
+
 #include "euler/util/logger.h"
+#include "euler/util/state.h"
 
-#include "spdlog/pattern_formatter.h"
-#include "spdlog/sinks/stdout_sinks.h"
-#include "spdlog/spdlog.h"
+#define MAX_SEVERITY_LABEL_LENGTH (sizeof("critical") - 1)
+#define MAX_TIME_STRING_SIZE 26
 
-using Severity = euler::util::Logger::Severity;
-
-struct euler::util::Logger::logger final : spdlog::logger {
-	using spdlog::logger::logger;
-	template <typename... Args>
-	logger(Args &&...args)
-	    : spdlog::logger(std::forward<Args>(args)...)
-	{
-	}
-};
-
-static std::shared_ptr<spdlog::sinks::stdout_sink_mt> stdout_sink;
-static std::shared_ptr<spdlog::sinks::stderr_sink_mt> stderr_sink;
-static std::unique_ptr<spdlog::pattern_formatter> formatter;
-static std::once_flag logger_once;
-
-static std::string_view
-severity_to_string(const Severity severity)
+static std::unordered_map<std::filesystem::path,
+    euler::util::Reference<euler::util::Logger::Sink>>
+    files;
+static std::mutex files_mutex;
+//
+// struct euler::util::Logger::Sink::stream {
+// 	std::filesystem::path path = {};
+// 	mutable std::mutex mutex = {};
+// 	FILE *file = nullptr;
+// 	stream(std::filesystem::path &&path, FILE *output = nullptr)
+// 	    : path(std::move(path))
+// 	    , file(output)
+// 	{
+// 	}
+//
+// 	void
+// 	write(const std::string_view msg) const
+// 	{
+// 		std::scoped_lock lock(mutex);
+// 		fwrite(msg.data(), sizeof(char), msg.size(), file);
+// 	}
+//
+// 	stream(FILE *output)
+// 	    : file(output)
+// 	{
+// 		assert(output == stdout || output == stderr);
+// 	}
+//
+// 	~stream();
+// };
+//
+// euler::util::Logger::Sink::stream::~stream()
+// {
+// 	if (file == stdout || file == stderr || file == nullptr) return;
+// 	fclose(file);
+// }
+//
+euler::util::Logger::Sink::~Sink()
 {
-	switch (severity) {
-	case Severity::Debug: return "DEBUG";
-	case Severity::Info: return "INFO";
-	case Severity::Warn: return "WARN";
-	case Severity::Error: return "ERROR";
-	case Severity::Fatal: return "FATAL";
-	case Severity::Unknown: return "ANY";
+	if (_file == stdout || _file == stderr || _file == nullptr) return;
+	fclose(_file);
+}
+//
+euler::util::Reference<euler::util::Logger::Sink>
+euler::util::Logger::file_sink(const std::filesystem::path &path)
+{
+	std::scoped_lock lock(files_mutex);
+	auto absolute = std::filesystem::absolute(path);
+	if (files.contains(absolute)) return files.at(absolute);
+	auto file = fopen(absolute.c_str(), "a");
+	if (file == nullptr) {
+		throw std::runtime_error(
+		    "Failed to open log file: " + absolute.string());
 	}
-	return "ANY";
+	auto output = util::Reference(new Sink(file));
+	output->_path = std::move(absolute);
+	files[absolute] = output;
+	return output;
+}
+//
+euler::util::Reference<euler::util::Logger::Sink>
+euler::util::Logger::stdout_sink()
+{
+	static auto stdout_output = util::Reference(new Sink(stdout));
+	return stdout_output;
 }
 
-class ShortSeverityFlagFormatter final : public spdlog::custom_flag_formatter {
-public:
-	~ShortSeverityFlagFormatter() override = default;
-
-	void
-	format(const spdlog::details::log_msg &msg, const std::tm &,
-	    spdlog::memory_buf_t &dest) override
-	{
-		auto sev = static_cast<Severity>(msg.level);
-		auto str = severity_to_string(sev);
-		dest.append(str.data(), str.data() + 1);
-	}
-
-	std::unique_ptr<custom_flag_formatter>
-	clone() const override
-	{
-		return std::make_unique<ShortSeverityFlagFormatter>();
-	}
-};
-
-class SeverityFlagFormatter final : public spdlog::custom_flag_formatter {
-public:
-	~SeverityFlagFormatter() override = default;
-
-	void
-	format(const spdlog::details::log_msg &msg, const std::tm &,
-	    spdlog::memory_buf_t &dest) override
-	{
-		auto sev = static_cast<Severity>(msg.level);
-		auto str = severity_to_string(sev);
-		dest.append(str.data(), str.data() + str.size());
-	}
-
-	std::unique_ptr<custom_flag_formatter>
-	clone() const override
-	{
-		return std::make_unique<SeverityFlagFormatter>();
-	}
-};
-
-static std::string
-formatter_pattern(const std::string_view datetime = "%Y-%m-%dT%H:%M:%S.%06F")
+euler::util::Reference<euler::util::Logger::Sink>
+euler::util::Logger::stderr_sink()
 {
-	return std::format("%Q, [{} #%P] %5q -- %n: %v", datetime);
+	static auto stderr_output = util::Reference(new Sink(stderr));
+	return stderr_output;
+}
+euler::util::Logger::Logger(Reference<State> state, const Severity severity,
+    const std::string_view progname, Reference<Sink> output_sink,
+    Reference<Sink> error_sink)
+    : Object(state)
+    , _output_sink(std::move(output_sink))
+    , _error_sink(std::move(error_sink))
+    , _severity(severity)
+    , _progname(progname)
+{
+}
+
+static std::string_view
+severity_to_string(const euler::util::Logger::Severity severity)
+{
+	switch (severity) {
+	case euler::util::Logger::Severity::Trace: return "trace";
+	case euler::util::Logger::Severity::Verbose: return "verbose";
+	case euler::util::Logger::Severity::Debug: return "debug";
+	case euler::util::Logger::Severity::Info: return "info";
+	case euler::util::Logger::Severity::Warn: return "warn";
+	case euler::util::Logger::Severity::Error: return "error";
+	case euler::util::Logger::Severity::Critical: return "critical";
+	default: return "invalid";
+	}
 }
 
 static void
-populate_static()
+write_time_string(char *buf)
 {
-	stdout_sink = std::make_shared<spdlog::sinks::stdout_sink_mt>();
-	stderr_sink = std::make_shared<spdlog::sinks::stderr_sink_mt>();
-	auto f = std::make_unique<spdlog::pattern_formatter>();
-	f->add_flag<ShortSeverityFlagFormatter>('Q');
-	f->add_flag<SeverityFlagFormatter>('q');
-	f->set_pattern(formatter_pattern());
-	formatter = std::move(f);
+	static const char *WEEK_DAYS[] = {
+		"Sun",
+		"Mon",
+		"Tue",
+		"Wed",
+		"Thu",
+		"Fri",
+		"Sat",
+	};
+	static const char *MONTHS[] = {
+		"Jan",
+		"Feb",
+		"Mar",
+		"Apr",
+		"May",
+		"Jun",
+		"Jul",
+		"Aug",
+		"Sep",
+		"Oct",
+		"Nov",
+		"Dec",
+	};
+	SDL_Time time;
+	SDL_DateTime dt;
+
+	if (!SDL_GetCurrentTime(&time)
+	    || !SDL_TimeToDateTime(time, &dt, true)) {
+		memset(buf, '-', MAX_TIME_STRING_SIZE);
+		return;
+	}
+
+	snprintf(buf, MAX_TIME_STRING_SIZE, "%s %s %i %02d:%02d:%02d %i",
+	    WEEK_DAYS[dt.day_of_week], MONTHS[dt.month - 1], dt.day, dt.hour,
+	    dt.minute, dt.second, dt.year);
 }
 
-static spdlog::level::level_enum
-to_spdlog_level(const Severity severity)
+static std::string
+format_string(const euler::util::Logger::Severity severity,
+    const std::string_view progname, const std::string_view message)
 {
-	return static_cast<spdlog::level::level_enum>(severity);
-}
-
-template <typename T>
-std::shared_ptr<euler::util::Logger::logger>
-euler::util::Logger::make_logger(const std::string_view progname,
-    const Severity severity, std::shared_ptr<T> sink)
-{
-	auto log = std::make_shared<logger>(progname.data(), sink);
-	log->set_level(to_spdlog_level(severity));
-	log->set_formatter(formatter->clone());
-	return log;
-}
-
-euler::util::Logger::Logger(Reference<State> state, const Severity severity,
-    const std::string_view progname, const std::string_view datetime_format)
-    : Object(state)
-{
-	std::call_once(logger_once, populate_static);
-	_progname = progname;
-	_severity = severity;
-	_datetime_format = datetime_format;
-	_out_log = make_logger<spdlog::sinks::stdout_sink_mt>(progname,
-	    severity, stdout_sink);
-	_err_log = make_logger<spdlog::sinks::stderr_sink_mt>(progname,
-	    severity, stderr_sink);
+	char time_buf[MAX_TIME_STRING_SIZE];
+	std::stringstream ss;
+	write_time_string(time_buf);
+	auto sev_str = severity_to_string(severity);
+	ss << "[" << time_buf << "] "
+	   << "[" << sev_str << "] "
+	   << "[" << progname << "] ";
+	for (size_t i = (sizeof("critical") - sev_str.size()); i > 0; i--)
+		ss << ' ';
+	ss << "-- " << message << '\n';
+	return ss.str();
 }
 
 void
 euler::util::Logger::write_log(const Severity severity,
     const std::string_view message) const
 {
-	if (severity < level()) return;
-	const auto &log = severity < Severity::Warn ? _out_log : _err_log;
-	log->log(to_spdlog_level(severity), message);
+	assert(should_log(severity));
+	const auto str = format_string(severity, progname(), message);
+	if (this->severity() >= Severity::Warn) _error_sink->write(str);
+	_output_sink->write(str);
 }

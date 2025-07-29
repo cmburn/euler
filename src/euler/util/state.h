@@ -9,7 +9,7 @@
 namespace euler::util {
 class Storage;
 
-/* pure virtual class; the actual state is implemented in engine::State */
+/* pure virtual class; the actual state is implemented in game::State */
 class State : public Object {
 protected:
 	void init_fs(const char *argv0 = nullptr);
@@ -20,9 +20,9 @@ protected:
 	{
 		_state = WeakReference(this);
 	}
+
 public:
 	~State() override = default;
-	[[nodiscard]] virtual mrb_state *mruby_state() const = 0;
 	[[nodiscard]] virtual Reference<Logger> log() const = 0;
 	[[nodiscard]] virtual Reference<Storage> storage() const = 0;
 };

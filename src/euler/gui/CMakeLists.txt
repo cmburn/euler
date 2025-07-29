@@ -7,10 +7,6 @@ add_library(euler_gui STATIC
         color_picker.h
         element.cpp
         element.h
-        font.cpp
-        font.h
-        gui.cpp
-        gui.h
         knob.cpp
         knob.h
         progress_bar.cpp
@@ -25,4 +21,11 @@ add_library(euler_gui STATIC
         symbol.h
         widget.cpp
         widget.h
+        ext.cpp
+        ext.h
+)
+
+target_link_libraries(euler_gui PUBLIC
+        euler_util
+        euler_graphics
 )

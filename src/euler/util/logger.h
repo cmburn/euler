@@ -3,9 +3,11 @@
 #ifndef EULER_UTIL_LOGGER_H
 #define EULER_UTIL_LOGGER_H
 
+#include <filesystem>
 #include <format>
 #include <memory>
 #include <string_view>
+#include <vector>
 
 #include "euler/util/object.h"
 
@@ -13,33 +15,66 @@ namespace euler::util {
 class Logger final : public Object {
 public:
 	enum class Severity {
+		Invalid,
+		Trace,
+		Verbose,
 		Debug,
 		Info,
 		Warn,
 		Error,
-		Fatal,
-		Unknown,
+		Critical,
 	};
 
-	static constexpr std::string_view DEFAULT_DATETIME_FORMAT
-	    = "%Y-%m-%dT%H:%M:%S.%6N";
+	class Sink final : public Object {
+		friend class Logger;
 
-	Logger(Reference<State>, Severity severity = Severity::Debug,
-	    std::string_view progname = "euler",
-	    std::string_view datetime_format = DEFAULT_DATETIME_FORMAT);
+	public:
+		~Sink() override;
 
-	Logger(Reference<State> state, const std::string_view progname)
-	    : Logger(state, Severity::Debug, progname, DEFAULT_DATETIME_FORMAT)
-	{
-	}
+	private:
+		Sink(FILE *output);
+		void write(std::string_view str) const;
+		mutable std::mutex _mutex;
+		std::optional<std::filesystem::path> _path;
+		FILE *_file;
+	};
+
+	static Reference<Sink> file_sink(const std::filesystem::path &);
+	static Reference<Sink> stdout_sink();
+	static Reference<Sink> stderr_sink();
+
+	~Logger() override = default;
+
+	Logger(Reference<State> state, const Severity severity,
+	    const std::string_view progname,
+	    Reference<Sink> output_sink = stdout_sink(),
+	    Reference<Sink> error_sink = stderr_sink());
+
+	/* Duplicates the sinks and state from the other logger */
+	Logger(Reference<Logger> other, std::string_view progname);
 
 	template <typename... Args>
 	void
 	add(const Severity severity, const std::format_string<Args...> message,
 	    Args &&...args) const
 	{
+		if (!should_log(severity)) return;
 		auto str = std::format(message, std::forward<Args>(args)...);
 		write_log(severity, str);
+	}
+
+	template <typename... Args>
+	void
+	trace(const std::format_string<Args...> message, Args &&...args) const
+	{
+		add(Severity::Trace, message, std::forward<Args>(args)...);
+	}
+
+	template <typename... Args>
+	void
+	verbose(const std::format_string<Args...> message, Args &&...args) const
+	{
+		add(Severity::Verbose, message, std::forward<Args>(args)...);
 	}
 
 	template <typename... Args>
@@ -72,9 +107,10 @@ public:
 
 	template <typename... Args>
 	[[noreturn]] void
-	fatal(const std::format_string<Args...> message, Args &&...args) const
+	critical(const std::format_string<Args...> message,
+	    Args &&...args) const
 	{
-		add(Severity::Fatal, message, std::forward<Args>(args)...);
+		add(Severity::Critical, message, std::forward<Args>(args)...);
 		std::abort();
 	}
 
@@ -87,14 +123,14 @@ public:
 	}
 
 	Severity
-	level() const
+	severity() const
 	{
 		std::lock_guard lock(_severity_mutex);
 		return _severity;
 	}
 
 	void
-	set_level(const Severity severity)
+	set_severity(const Severity severity)
 	{
 		std::lock_guard lock(_severity_mutex);
 		_severity = severity;
@@ -114,21 +150,21 @@ public:
 		_progname = progname;
 	}
 
-private:
-	struct logger;
-	template <typename SinkT>
-	static std::shared_ptr<logger> make_logger(std::string_view progname,
-	    Severity severity, std::shared_ptr<SinkT> sink);
+	bool
+	should_log(const Severity severity) const
+	{
+		return severity >= this->severity()
+		    || severity >= Severity::Critical;
+	}
 
+private:
 	void write_log(Severity severity, std::string_view message) const;
-	std::shared_ptr<logger> _out_log;
-	std::shared_ptr<logger> _err_log;
+	Reference<Sink> _output_sink;
+	Reference<Sink> _error_sink;
 	Severity _severity = Severity::Info;
 	mutable std::mutex _severity_mutex;
 	std::string _progname = "euler";
 	mutable std::mutex _progname_mutex;
-	std::string _datetime_format = DEFAULT_DATETIME_FORMAT.data();
-	mutable std::mutex _datetime_format_mutex;
 };
 
 } /* namespace Euler::Util */

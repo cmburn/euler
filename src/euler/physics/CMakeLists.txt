@@ -1,50 +1,21 @@
 add_library(euler_physics STATIC
+        dynamic_body.cpp
+        dynamic_body.h
         body.cpp
         body.h
-        chain_shape.cpp
-        chain_shape.h
-        circle_shape.cpp
-        circle_shape.h
-        contact.cpp
-        contact.h
-        distance_joint.cpp
-        distance_joint.h
-        edge_shape.cpp
-        edge_shape.h
         ext.cpp
         ext.h
-        fixture.cpp
-        fixture.h
-        friction_joint.cpp
-        friction_joint.h
-        gear_joint.cpp
-        gear_joint.h
-        joint.cpp
-        joint.h
-        motor_joint.cpp
-        motor_joint.h
-        polygon_shape.cpp
-        polygon_shape.h
-        prismatic_joint.cpp
-        prismatic_joint.h
-        pulley_joint.cpp
-        pulley_joint.h
-        revolute_joint.cpp
-        revolute_joint.h
-        rope_joint.cpp
-        rope_joint.h
-        shape.cpp
-        shape.h
-        types.cpp
-        types.h
-        weld_joint.cpp
-        weld_joint.h
-        wheel_joint.cpp
-        wheel_joint.h
+        fluid.cpp
+        fluid.h
+        material.cpp
+        material.h
+        static_body.cpp
+        static_body.h
         world.cpp
         world.h
 )
 
 target_link_libraries(euler_physics PUBLIC
+        glm::glm
         euler_util
 )

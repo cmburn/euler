@@ -12,6 +12,7 @@
 namespace euler::util {
 class State;
 class Object;
+class Logger;
 template <typename T> class WeakReference;
 template <typename T> class Reference;
 
@@ -87,6 +88,7 @@ class Object {
 	friend class State;
 
 public:
+	Object();
 	Object(Reference<State> state);
 	Object(WeakReference<State> state);
 	virtual ~Object() = default;
@@ -109,6 +111,8 @@ protected:
 		auto ptr = new T(state(), std::forward<Args>(args)...);
 		return Reference<T>(ptr);
 	}
+
+	Reference<Logger> log() const;
 
 private:
 	/* We're in a weird position because State is also an object, but

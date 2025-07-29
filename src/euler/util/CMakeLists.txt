@@ -1,26 +1,22 @@
 add_library(euler_util STATIC
-        defer.cpp
-        defer.h
         logger.cpp
         logger.h
         object.cpp
         object.h
-        opaque.cpp
-        opaque.h
         optparse.c
         optparse.h
-        sdl.cpp
-        sdl.h
         state.cpp
         state.h
         storage.cpp
         storage.h
-        thread.cpp
-        thread.h
-        value.cpp
-        value.h
         version.cpp
         version.h
+        thread.cpp
+        thread.h
+        ext.cpp
+        ext.h
+        config.cpp
+        config.h
 )
 
 target_link_libraries(euler_util PUBLIC
@@ -29,7 +25,6 @@ target_link_libraries(euler_util PUBLIC
 )
 
 target_link_libraries(euler_util PRIVATE
-        spdlog::spdlog
         physfs-static
 )
 
