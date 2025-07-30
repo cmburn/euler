@@ -6,7 +6,7 @@
 #include "euler/util/state.h"
 
 namespace euler::game {
-void Init_euler_game(util::Reference<util::State> state);
+void init_game(util::Reference<util::State> state);
 } /* namespace euler::game */
 
 

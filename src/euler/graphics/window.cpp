@@ -40,17 +40,8 @@ euler::graphics::Window::~Window()
 }
 
 
-Eigen::Vector4f
-euler::graphics::Window::size() const
+void
+euler::graphics::Window::process_event(const SDL_Event &e)
 {
-	Eigen::Vector4f size;
-	int w, h, x, y;
-	SDL_GetWindowPosition(_window, &x, &y);
-	SDL_GetWindowSize(_window, &w, &h);
-	return {
-		static_cast<float>(x),
-		static_cast<float>(y),
-		static_cast<float>(w),
-		static_cast<float>(h),
-	};
+
 }

@@ -4,6 +4,7 @@
 #define EULER_UTIL_VERSION_H
 #include <cassert>
 #include <cstdint>
+#include <format>
 
 #include <vulkan/vulkan_core.h>
 
@@ -70,6 +71,11 @@ public:
 	{
 		assert(patch < (1 << 12));
 		_patch = patch;
+	}
+
+	std::string to_string() const
+	{
+		return std::format("v{}.{}.{}", _major, _minor, _patch);
 	}
 
 private:
