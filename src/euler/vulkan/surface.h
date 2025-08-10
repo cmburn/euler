@@ -3,6 +3,8 @@
 #ifndef EULER_VULKAN_SURFACE_H
 #define EULER_VULKAN_SURFACE_H
 
+#include <SDL3/SDL.h>
+
 #include "euler/util/object.h"
 
 namespace euler::vulkan {

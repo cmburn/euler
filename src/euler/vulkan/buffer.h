@@ -6,7 +6,7 @@
 #include <vulkan/vulkan_raii.hpp>
 
 #include "euler/util/object.h"
-#include "euler/vulkan/data.h"
+#include "euler/vulkan/types.h"
 
 typedef struct VmaAllocation_T *VmaAllocation;
 

@@ -5,8 +5,6 @@ add_library(euler_vulkan STATIC
         camera.h
         compute_pipeline.cpp
         compute_pipeline.h
-        data.cpp
-        data.h
         descriptor_buffer.cpp
         descriptor_buffer.h
         descriptor_control.cpp

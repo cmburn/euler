@@ -4,6 +4,7 @@
 #define EULER_VULKAN_TYPES_H
 
 #include <vulkan/vulkan.hpp>
+#include <glm/glm.hpp>
 
 namespace euler::vulkan {
 
@@ -17,7 +18,13 @@ enum class MSAA {
 	x64 = vk::SampleCountFlagBits::e64,
 };
 
+// struct ColorVertex {
+// 	glm::vec4 position;
+// 	glm::vec4 color;
+// };
 
+using ColorVertex = glm::mat4x2;
+using Data = std::span<uint8_t>;
 
 } /* namespace euler::vulkan */
 

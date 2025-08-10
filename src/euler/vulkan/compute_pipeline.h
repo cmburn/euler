@@ -3,10 +3,10 @@
 #ifndef EULER_VULKAN_COMPUTE_PIPELINE_H
 #define EULER_VULKAN_COMPUTE_PIPELINE_H
 
-#include "euler/util/object.h"
+#include "euler/vulkan/pipeline.h"
 
 namespace euler::vulkan {
-class ComputePipeline final : public util::Object { };
+class ComputePipeline final : public Pipeline {};
 } /* namespace euler::vulkan */
 
 

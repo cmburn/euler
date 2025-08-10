@@ -18,6 +18,8 @@ class Renderer final : public util::Object {
 public:
 	struct Config {};
 
+	Renderer(util::Reference<Instance> instance);
+
 	~Renderer() override;
 
 	void wait() const;
