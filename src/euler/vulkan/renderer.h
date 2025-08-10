@@ -14,7 +14,7 @@
 typedef struct VmaAllocator_T *VmaAllocator;
 
 namespace euler::vulkan {
-class Renderer final : util::Object {
+class Renderer final : public util::Object {
 public:
 	struct Config {};
 
@@ -37,7 +37,9 @@ public:
 	}
 
 	util::Reference<Device> device() const;
+	util::Reference<Surface> surface() const;
 	void set_target(util::Reference<Texture> target);
+	void flush_sprite_batch();
 private:
 	util::Reference<Surface> _surface;
 	VmaAllocator _allocator = nullptr;

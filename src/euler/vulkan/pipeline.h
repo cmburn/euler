@@ -6,7 +6,10 @@
 #include "euler/util/object.h"
 
 namespace euler::vulkan {
-class Pipeline final : util::Object { };
+class Pipeline final : public util::Object {
+public:
+
+};
 } /* namespace euler::vulkan */
 
 

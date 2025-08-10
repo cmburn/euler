@@ -50,7 +50,7 @@ class ClassCreator
     else
       <<~END_SRC
         namespace #{namespace.join('::')} {
-        #{no_class ? '' : "class #{camel_case} final : util::Object { };"}
+        #{no_class ? '' : "class #{camel_case} final : public util::Object { };"}
         } /* namespace #{namespace.join('::')} */
       END_SRC
     end

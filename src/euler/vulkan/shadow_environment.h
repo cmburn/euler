@@ -6,7 +6,7 @@
 #include "euler/util/object.h"
 
 namespace euler::vulkan {
-class ShadowEnvironment final : util::Object { };
+class ShadowEnvironment final : public util::Object { };
 } /* namespace euler::vulkan */
 
 

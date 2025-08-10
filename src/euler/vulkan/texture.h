@@ -6,7 +6,7 @@
 #include "euler/util/object.h"
 
 namespace euler::vulkan {
-class Texture final : util::Object { };
+class Texture final : public util::Object { };
 } /* namespace euler::vulkan */
 
 

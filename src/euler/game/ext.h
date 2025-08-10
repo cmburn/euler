@@ -9,6 +9,4 @@ namespace euler::game {
 void init_game(util::Reference<util::State> state);
 } /* namespace euler::game */
 
-
 #endif /* EULER_GAME_EXT_H */
-

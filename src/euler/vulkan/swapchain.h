@@ -6,7 +6,7 @@
 #include "euler/util/object.h"
 
 namespace euler::vulkan {
-class Swapchain final : util::Object { };
+class Swapchain final : public util::Object { };
 } /* namespace euler::vulkan */
 
 

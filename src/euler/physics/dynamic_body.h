@@ -6,7 +6,7 @@
 #include "euler/util/object.h"
 
 namespace euler::physics {
-class DynamicBody final : util::Object { };
+class DynamicBody final : public util::Object { };
 } /* namespace euler::physics */
 
 

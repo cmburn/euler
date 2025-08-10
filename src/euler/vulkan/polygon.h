@@ -6,7 +6,7 @@
 #include "euler/util/object.h"
 
 namespace euler::vulkan {
-class Polygon final : util::Object { };
+class Polygon final : public util::Object { };
 } /* namespace euler::vulkan */
 
 

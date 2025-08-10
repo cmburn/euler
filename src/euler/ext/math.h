@@ -9,6 +9,4 @@ namespace euler::ext {
 
 } /* namespace euler::ext */
 
-
 #endif /* EULER_EXT_MATH_H */
-

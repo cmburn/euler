@@ -6,7 +6,7 @@
 #include "euler/util/object.h"
 
 namespace euler::physics {
-class Material final : util::Object { };
+class Material final : public util::Object { };
 } /* namespace euler::physics */
 
 

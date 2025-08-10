@@ -6,7 +6,7 @@
 #include "euler/util/object.h"
 
 namespace euler::vulkan {
-class Shader final : util::Object { };
+class Shader final : public util::Object { };
 } /* namespace euler::vulkan */
 
 

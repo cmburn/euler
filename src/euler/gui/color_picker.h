@@ -6,7 +6,7 @@
 #include "euler/util/object.h"
 
 namespace euler::gui {
-class ColorPicker final : util::Object { };
+class ColorPicker final : public util::Object { };
 } /* namespace euler::gui */
 
 

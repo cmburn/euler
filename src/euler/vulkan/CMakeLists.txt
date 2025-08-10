@@ -3,18 +3,42 @@ add_library(euler_vulkan STATIC
         buffer.h
         camera.cpp
         camera.h
+        compute_pipeline.cpp
+        compute_pipeline.h
+        data.cpp
+        data.h
         descriptor_buffer.cpp
         descriptor_buffer.h
         descriptor_control.cpp
         descriptor_control.h
+        device.cpp
+        device.h
+        ext.cpp
+        ext.h
+        graphics_pipeline.cpp
+        graphics_pipeline.h
+        image.cpp
+        image.h
         instance.cpp
         instance.h
+        physical_device.cpp
+        physical_device.h
+        pipeline.cpp
+        pipeline.h
+        polygon.cpp
+        polygon.h
         renderer.cpp
         renderer.h
+        shader.cpp
+        shader.h
+        shadow_environment.cpp
+        shadow_environment.h
         surface.cpp
         surface.h
         swapchain.cpp
         swapchain.h
+        texture.cpp
+        texture.h
         vma.cpp
 )
 

@@ -7,9 +7,11 @@
 
 namespace euler::vulkan {
 /* Meant to be inherited by graphics::Window */
-class Surface : util::Object {
+class Surface : public util::Object {
 public:
 	virtual SDL_Window *window() const = 0;
+	virtual size_t width() const = 0;
+	virtual size_t height() const = 0;
 };
 } /* namespace euler::vulkan */
 

@@ -6,7 +6,7 @@
 #include "euler/util/object.h"
 
 namespace euler::vulkan {
-class Instance final : util::Object { };
+class Instance final : public util::Object { };
 } /* namespace euler::vulkan */
 
 

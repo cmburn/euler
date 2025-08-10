@@ -6,7 +6,7 @@
 #include "euler/util/object.h"
 
 namespace euler::gui {
-class Slider final : util::Object { };
+class Slider final : public util::Object { };
 } /* namespace euler::gui */
 
 

@@ -9,9 +9,8 @@
 
 static vk::raii::Buffer
 make_buffer(euler::util::Reference<euler::vulkan::Device> device,
-    VmaAllocation *allocation,
-    const vk::DeviceSize buffer_size, const vk::BufferUsageFlags usage,
-    const vk::MemoryPropertyFlags properties)
+    VmaAllocation *allocation, const vk::DeviceSize buffer_size,
+    const vk::BufferUsageFlags usage, const vk::MemoryPropertyFlags properties)
 {
 	auto queue_family_index = device->physical_device()->graphics_family();
 	const auto r = device->renderer();
@@ -39,19 +38,58 @@ euler::vulkan::Buffer::Buffer(util::Reference<Device> device,
     const vk::DeviceSize buffer_size, const vk::BufferUsageFlags usage,
     const vk::MemoryPropertyFlags properties)
     : Object(device->state())
-    , _device(std::move(device))
+    , _device(device)
     , _allocation(VK_NULL_HANDLE)
     , _buffer(make_buffer(device, &_allocation, buffer_size, usage, properties))
+    , _buffer_size(buffer_size)
 {
 }
 
-void
-euler::vulkan::Buffer::load(const void *data, vk::DeviceSize size)
+euler::vulkan::Buffer::~Buffer()
 {
+	const vk::Buffer vk_buffer = *_buffer;
+	vmaDestroyBuffer(_device->renderer()->allocator(), vk_buffer,
+	    _allocation);
 }
 
+euler::util::Reference<euler::vulkan::Buffer>
+euler::vulkan::Buffer::load(util::Reference<Device> device,
+    vk::BufferUsageFlags usage, std::vector<Data> data)
+{
+	vk::DeviceSize buffer_size = 0;
+	for (const auto &[data, size] : data) buffer_size += size;
+	const auto stage
+	    = util::make_reference<Buffer>(device, buffer_size, usage);
+	void *location = nullptr;
+	vmaMapMemory(stage->_device->renderer()->allocator(),
+	    stage->_allocation, &location);
+	for (const auto &[data, size] : data) {
+		if (data == nullptr || size == 0) continue;
+		std::memcpy(location, data, size);
+		location = static_cast<char *>(location) + size;
+	}
+	vmaUnmapMemory(stage->_device->renderer()->allocator(),
+	    stage->_allocation);
+	auto ret = util::make_reference<Buffer>(device, buffer_size, usage);
+	stage->copy_to(ret);
+	return ret;
+}
+
+euler::util::Reference<euler::vulkan::Buffer>
+euler::vulkan::Buffer::load(util::Reference<Device> device,
+    const vk::BufferUsageFlags usage, const Data data)
+{
+	return load(device, usage, std::vector { data });
+}
 void
 euler::vulkan::Buffer::copy_to(util::Reference<Buffer> other) const
 {
-
+	auto command_buffer = _device->single_use_buffer();
+	const vk::BufferCopy copy_region = {
+		.srcOffset = static_cast<vk::DeviceSize>(0),
+		.dstOffset = static_cast<vk::DeviceSize>(0),
+		.size = _buffer_size,
+	};
+	command_buffer.copyBuffer(*_buffer, *other->_buffer, copy_region);
+	_device->submit_single_use_buffer(command_buffer);
 }
