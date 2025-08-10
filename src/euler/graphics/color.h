@@ -9,6 +9,7 @@
 #include "euler/util/object.h"
 
 namespace euler::graphics {
+
 class Color {
 public:
 	constexpr Color(const SDL_Color color)
@@ -61,7 +62,7 @@ public:
 	}
 
 	[[nodiscard]] SDL_Color
-	to_sdl_color() const
+	to_sdl() const
 	{
 		return SDL_Color { _red, _green, _blue, _alpha };
 	}
@@ -96,6 +97,12 @@ public:
 		_alpha = alpha;
 	}
 
+	static constexpr Color WHITE { 255, 255, 255, 255 };
+	static constexpr Color BLACK { 0, 0, 0, 255 };
+	static constexpr Color RED { 255, 0, 0, 255 };
+	static constexpr Color GREEN { 0, 255, 0, 255 };
+	static constexpr Color BLUE { 0, 0, 255, 255 };
+
 private:
 	uint8_t _red;
 	uint8_t _green;
@@ -103,12 +110,6 @@ private:
 	uint8_t _alpha;
 };
 
-static constexpr auto WHITE_COLOR = Color(255, 255, 255, 255);
-static constexpr auto BLACK_COLOR = Color(0, 0, 0, 255);
-static constexpr auto RED_COLOR = Color(255, 0, 0, 255);
-static constexpr auto GREEN_COLOR = Color(0, 255, 0, 255);
-static constexpr auto BLUE_COLOR = Color(0, 0, 255, 255);
-
-} /* namespace Euler::Graphics */
+} /* namespace euler::graphics */
 
 #endif /* EULER_GRAPHICS_COLOR_H */

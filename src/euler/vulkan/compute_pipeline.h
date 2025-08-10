@@ -6,7 +6,12 @@
 #include "euler/vulkan/pipeline.h"
 
 namespace euler::vulkan {
-class ComputePipeline final : public Pipeline {};
+class ComputePipeline final : public Pipeline {
+public:
+	
+
+private:
+};
 } /* namespace euler::vulkan */
 
 

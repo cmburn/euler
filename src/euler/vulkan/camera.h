@@ -10,6 +10,7 @@ class Renderer;
 
 class Camera final : public util::Object {
 public:
+	using Index = uint16_t;
 	enum class State {
 		Normal,
 		Disabled,
@@ -38,13 +39,21 @@ public:
 	{
 		return _spec;
 	}
+
 	/* ReSharper disable once CppHidingFunction */
 	State state() const { return _state; }
 	void set_state(State state);
 	util::Reference<Renderer> renderer() const;
 
+	Index index() const
+	{
+		return _index;
+	}
+
+
 private:
 	Spec _spec;
+	Index _index = 0;
 	util::WeakReference<Renderer> _renderer;
 	State _state = State::Normal;
 };

@@ -4,7 +4,10 @@
 
 #include <vk_mem_alloc.h>
 
-euler::vulkan::Renderer::~Renderer()
+euler::vulkan::Renderer::Renderer(util::Reference<Instance> instance)
+    : _instance(instance)
 {
-	vmaDestroyAllocator(_allocator);
+	
 }
+
+euler::vulkan::Renderer::~Renderer() { vmaDestroyAllocator(_allocator); }

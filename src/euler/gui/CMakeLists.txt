@@ -17,8 +17,6 @@ add_library(euler_gui STATIC
         selectable.h
         slider.cpp
         slider.h
-        symbol.cpp
-        symbol.h
         widget.cpp
         widget.h
         ext.cpp

@@ -3,6 +3,8 @@ add_library(euler_vulkan STATIC
         buffer.h
         camera.cpp
         camera.h
+        common.cpp
+        common.h
         compute_pipeline.cpp
         compute_pipeline.h
         descriptor_buffer.cpp
