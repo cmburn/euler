@@ -1,6 +1,6 @@
-[submodule "extern/Vulkan2D"]
-	path = extern/Vulkan2D
-	url = https://github.com/PaoloMazzon/Vulkan2D
+[submodule "extern/glm"]
+	path = extern/glm
+	url = https://github.com/g-truc/glm
 [submodule "extern/SDL"]
 	path = extern/SDL
 	url = https://github.com/libsdl-org/SDL
@@ -16,15 +16,9 @@
 [submodule "extern/VulkanMemoryAllocator"]
 	path = extern/VulkanMemoryAllocator
 	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
-[submodule "extern/box2d"]
-	path = extern/box2d
-	url = https://github.com/erincatto/box2d
 [submodule "extern/physfs"]
 	path = extern/physfs
 	url = https://github.com/icculus/physfs/
-[submodule "extern/glm"]
-	path = extern/glm
-	url = https://github.com/g-truc/glm
 [submodule "extern/nlohmann-json"]
 	path = extern/nlohmann-json
 	url = https://github.com/nlohmann/json
