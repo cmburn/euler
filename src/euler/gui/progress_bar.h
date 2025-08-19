@@ -3,7 +3,7 @@
 #ifndef EULER_GUI_PROGRESS_BAR_H
 #define EULER_GUI_PROGRESS_BAR_H
 
-#include "euler/util/object.h"
+#include "euler/gui/element.h"
 
 namespace euler::gui {
 class ProgressBar : public Element {

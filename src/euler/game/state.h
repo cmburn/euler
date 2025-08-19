@@ -12,7 +12,9 @@
 
 #include "euler/graphics/window.h"
 #include "euler/util/config.h"
+#include "euler/util/logger.h"
 #include "euler/util/state.h"
+#include "euler/util/storage.h"
 #include "euler/util/version.h"
 #include "euler/vulkan/renderer.h"
 
@@ -40,7 +42,7 @@ public:
 
 	bool require(std::string_view path);
 
-	~State() override;
+	~State() override = default;
 
 	[[nodiscard]] util::Reference<util::Logger>
 	log() const override
@@ -60,16 +62,85 @@ public:
 		    .strengthen();
 	}
 
+	mrb_state *
+	mrb()
+	{
+		return _state;
+	}
+
+	struct Modules {
+		RClass *module = nullptr;
+		struct {
+			RClass *module = nullptr;
+			RClass *state = nullptr;
+		} game;
+		struct {
+			RClass *module = nullptr;
+			RClass *camera = nullptr;
+			RClass *color = nullptr;
+			RClass *font = nullptr;
+			RClass *polygon = nullptr;
+			RClass *text = nullptr;
+			RClass *window = nullptr;
+		} graphics;
+		struct {
+			RClass *module = nullptr;
+			RClass *button = nullptr;
+			RClass *checkbox = nullptr;
+			RClass *color_picker = nullptr;
+			RClass *element = nullptr;
+			RClass *knob = nullptr;
+			RClass *progress_bar = nullptr;
+			RClass *radio = nullptr;
+			RClass *selectable = nullptr;
+			RClass *slider = nullptr;
+			RClass *widget = nullptr;
+		} gui;
+		struct {
+			RClass *module = nullptr;
+		} physics;
+		struct {
+			RClass *module = nullptr;
+			RClass *config = nullptr;
+			struct {
+				RClass *klass = nullptr;
+				RClass *sink = nullptr;
+			} logger;
+			RClass *storage = nullptr;
+			RClass *version = nullptr;
+		} util;
+		struct {
+			RClass *module = nullptr;
+		} vulkan;
+	};
+
+	[[nodiscard]] const Modules &
+	euler() const
+	{
+		return _euler;
+	}
+
+	Modules &
+	euler()
+	{
+		return _euler;
+	}
+
 private:
 	friend util::Reference<State> make_state(const util::Config &config);
 	friend util::Reference<State> make_state(int argc, char **argv);
 
 	State(const util::Config &);
 
+	std::optional<std::string_view> exception_string();
+
+	bool init_core();
+
 	/* standard init independent of any user content */
 	bool load_core();
-	bool load(std::string_view path);
+	bool load_entry(std::string_view path);
 	bool handle_event(const SDL_Event &e);
+	bool load_entry_file(std::string_view path);
 
 	bool load_text(std::string_view source, std::string_view data);
 
@@ -80,19 +151,20 @@ private:
 	util::Reference<vulkan::Renderer> _renderer;
 	util::Reference<graphics::Window> _window;
 	std::unordered_set<std::string> _loaded_modules;
+	Modules _euler;
 };
 
 inline util::Reference<State>
 make_state(const util::Config &config)
 {
-	return util::make_reference<State>(config);
+	return util::Reference(new State(config));
 }
 
 inline util::Reference<State>
 make_state(int argc, char **argv)
 {
 	const auto config = util::Config::parse_args(argc, argv);
-	return util::make_reference<State>(config);
+	return make_state(config);
 }
 
 } /* namespace euler::game */

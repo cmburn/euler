@@ -9,7 +9,7 @@
 #include <variant>
 #include <vector>
 
-#include "Eigen/Core"
+#include <glm/glm.hpp>
 
 #include "euler/util/object.h"
 
@@ -25,7 +25,7 @@ class Font final : public util::Object {
 public:
 	struct Config {
 		std::vector<std::pair<uint32_t, uint32_t>> glyph_ranges;
-		Eigen::Vector2f spacing;
+		glm::vec2 spacing;
 		uint32_t fallback_glyph;
 	};
 

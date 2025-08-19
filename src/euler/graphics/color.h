@@ -97,11 +97,6 @@ public:
 		_alpha = alpha;
 	}
 
-	static constexpr Color WHITE { 255, 255, 255, 255 };
-	static constexpr Color BLACK { 0, 0, 0, 255 };
-	static constexpr Color RED { 255, 0, 0, 255 };
-	static constexpr Color GREEN { 0, 255, 0, 255 };
-	static constexpr Color BLUE { 0, 0, 255, 255 };
 
 private:
 	uint8_t _red;
@@ -109,6 +104,13 @@ private:
 	uint8_t _blue;
 	uint8_t _alpha;
 };
+
+static constexpr Color WHITE { 255, 255, 255, 255 };
+static constexpr Color BLACK { 0, 0, 0, 255 };
+static constexpr Color RED { 255, 0, 0, 255 };
+static constexpr Color GREEN { 0, 255, 0, 255 };
+static constexpr Color BLUE { 0, 0, 255, 255 };
+
 
 } /* namespace euler::graphics */
 

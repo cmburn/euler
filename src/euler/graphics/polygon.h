@@ -3,7 +3,7 @@
 #ifndef EULER_RENDERER_POLYGON_H
 #define EULER_RENDERER_POLYGON_H
 
-#include <Eigen/Core>
+#include <glm/glm.hpp>
 
 typedef struct VK2DPolygon_t *VK2DPolygon;
 
@@ -11,11 +11,11 @@ namespace euler::graphics {
 class Polygon {
 public:
 	struct VertexColor {
-		Eigen::Vector3f position;
-		Eigen::Vector4f color;
+		glm::vec3 position;
+		glm::vec4 color;
 	};
 	Polygon(const std::vector<VertexColor> &vertices);
-	Polygon(const std::vector<Eigen::Vector2f> &vertices, bool filled = false);
+	Polygon(const std::vector<glm::vec2> &vertices, bool filled = false);
 	~Polygon();
 private:
 	VK2DPolygon _polygon = nullptr;

@@ -5,7 +5,8 @@ PRESYM_PATH = Pathname.new(__FILE__).dirname.join('presym')
 MRuby::Build.new do |conf|
   conf.toolchain
   conf.gembox 'default'
-  conf.enable_cxx_exception
+  #conf.enable_cxx_exception
+  conf.enable_cxx_abi
   def self.define_rules
     super
 

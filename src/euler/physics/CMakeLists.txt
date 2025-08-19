@@ -3,8 +3,6 @@ add_library(euler_physics STATIC
         dynamic_body.h
         body.cpp
         body.h
-        ext.cpp
-        ext.h
         fluid.cpp
         fluid.h
         material.cpp

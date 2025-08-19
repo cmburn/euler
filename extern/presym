@@ -20,7 +20,9 @@ clicks
 clipboard_update
 code
 count
+critical
 data
+debug
 did_enter_background
 did_enter_foreground
 direction
@@ -44,6 +46,8 @@ dy
 eraser
 eraser_tip
 error
+error
+fatal
 finger
 finger_canceled
 finger_down
@@ -65,6 +69,7 @@ gamepad_touchpad_up
 gamepad_update_complete
 hat
 horizontal
+info
 integer_x
 integer_y
 joystick_added
@@ -97,6 +102,7 @@ mouse_x
 mouse_y
 no_battery
 normal
+off
 on_battery
 owner
 pen_axis
@@ -138,9 +144,11 @@ text_input
 timestamp
 touch_id
 touchpad
+trace
 type
 unknown
 value
+warn
 which
 will_enter_background
 will_enter_foreground

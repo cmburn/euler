@@ -9,17 +9,13 @@
 namespace euler::util {
 class Storage;
 
+
+
 /* pure virtual class; the actual state is implemented in game::State */
 class State : public Object {
 protected:
 	void init_fs(const char *argv0 = nullptr);
 	void deinit_fs();
-
-	State()
-	    : Object(StateArg {})
-	{
-		_state = WeakReference(this);
-	}
 
 public:
 	~State() override = default;

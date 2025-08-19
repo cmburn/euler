@@ -84,7 +84,7 @@ private:
 	uint16_t _patch : 12;
 };
 
-extern const Version VERSION;
+extern Version version();
 
 }
 

@@ -14,7 +14,7 @@ namespace euler::util {
 
 class Storage final : public Object {
 public:
-	Storage(Reference<State> state);
+	Storage();
 	~Storage() override;
 
 	std::string load_text_file(std::string_view path) const;

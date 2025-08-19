@@ -7,21 +7,23 @@
 #include <semaphore>
 
 #include <mruby/proc.h>
-/* mruby/proc.h has to come before mruby/internal.h */
-#include <mruby/compile.h>
-#include <mruby/internal.h>
-#include <mruby/presym.h>
 
-#include "euler/game/ext.h"
-#include "euler/graphics/ext.h"
-#include "euler/gui/ext.h"
-#include "euler/physics/ext.h"
-#include "euler/util/ext.h"
+#include <mruby/compile.h>
+#include <mruby/presym.h>
+#include <mruby/string.h>
+#include <mruby/throw.h>
+
+#include "euler/game/game_ext.h"
+#include "euler/game/graphics_ext.h"
+#include "euler/game/gui_ext.h"
+#include "euler/game/physics_ext.h"
+#include "euler/game/util_ext.h"
+#include "euler/game/vulkan_ext.h"
+
 #include "euler/util/storage.h"
 #include "euler/util/thread.h"
-#include "euler/vulkan/ext.h"
 
-static auto state_count = std::binary_semaphore(0);
+static auto state_count = std::binary_semaphore(1);
 static std::thread::id main_thread_id;
 
 static constexpr SDL_InitFlags SDL_FLAGS = //
@@ -34,10 +36,35 @@ static constexpr SDL_InitFlags SDL_FLAGS = //
 euler::game::State::State(const util::Config &config)
     : _config(config)
 {
-	_log = make_object<util::Logger>(config.log_level, config.progname);
+	_log = util::make_reference<util::Logger>(config.progname,
+	    config.log_level);
 	_log->info("Creating state");
 	if (!state_count.try_acquire())
 		_log->critical("Multiple states are not yet supported");
+}
+
+std::optional<std::string_view>
+euler::game::State::exception_string()
+{
+	if (_state->exc == nullptr) return std::nullopt;
+	auto str = mrb_obj_value(_state->exc);
+	auto value = mrb_obj_as_string(_state, str);
+	const char *ptr = RSTRING_PTR(value);
+	const auto len = RSTRING_LEN(value);
+	/* ReSharper disable once CppDFALocalValueEscapesFunction */
+	return std::string_view(ptr, len);
+}
+
+static void
+init_state(euler::util::Reference<euler::game::State> self)
+{
+	using namespace euler::game;
+	init_util(self);
+	init_vulkan(self);
+	init_graphics(self);
+	init_gui(self);
+	init_physics(self);
+	init_game(self);
 }
 
 bool
@@ -73,21 +100,17 @@ euler::game::State::load_core()
 	log()->info("Initializing core modules");
 	/* TODO: proper physfs limiting for module load */
 	const auto self = util::Reference(this);
-	util::init_util(self);
-	vulkan::init_vulkan(self);
-	graphics::init_graphics(self);
-	gui::init_gui(self);
-	physics::init_physics(self);
-	init_game(self);
+	init_state(self);
+
 	_log->debug("Core modules initialized");
 	return true;
 }
 
 bool
-euler::game::State::load(std::string_view path)
+euler::game::State::load_entry(std::string_view path)
 {
 	if (!std::filesystem::exists(path))
-		_log->critical("Entry file '{}' does not exist", path);
+		_log->error("Entry file '{}' does not exist", path);
 
 	log()->info("Loading entry file '{}'", path);
 	std::ifstream file(path.data());
@@ -95,10 +118,11 @@ euler::game::State::load(std::string_view path)
 		log()->error("Failed to open entry file '{}'", path);
 		return false;
 	}
-	// if (!require(path)) {
-	// 	log()->error("Failed to load entry file '{}'", path);
-	// 	return false;
-	// }
+	std::string content((std::istreambuf_iterator(file)),
+	    std::istreambuf_iterator<char>());
+	if (!load_text(path, content)) {
+		log()->error("Failed to load entry file '{}'", path);
+	}
 	log()->info("Entry file '{}' loaded successfully", path);
 	return true;
 }
@@ -247,18 +271,17 @@ sdl_event_sym(mrb_state *mrb, SDL_Event &e)
 		return MRB_SYM(render_targets_reset);
 	case SDL_EVENT_RENDER_DEVICE_RESET: return MRB_SYM(render_device_reset);
 	case SDL_EVENT_RENDER_DEVICE_LOST: return MRB_SYM(render_device_lost);
-	default:
-		return 0;
+	default: return 0;
 	}
 }
 
-bool
-euler::game::State::handle_event(const SDL_Event &e)
-{
-	// log->error("Unknown SDL event type: {}", e.type);
-	[[maybe_unused]] auto guard = _window->input_guard();
-
-}
+// bool
+// euler::game::State::handle_event(const SDL_Event &e)
+// {
+// 	// log->error("Unknown SDL event type: {}", e.type);
+// 	[[maybe_unused]] auto guard = _window->input_guard();
+//
+// }
 
 bool
 euler::game::State::load_text(std::string_view source, std::string_view data)
@@ -294,43 +317,39 @@ euler::game::State::load_text(std::string_view source, std::string_view data)
 		mrb_parser_free(p);
 		return false;
 	}
-	auto target_class = MRB_PROC_TARGET_CLASS(scope);
-	if (scope != nullptr) {
-		REnv *env = mrb_vm_ci_env(ci);
-		if (env == nullptr) {
-			const auto n_stacks = ci->proc->body.irep->nlocals;
-			env = mrb_env_new(_state, _state->c, ci, n_stacks,
-			    ci->stack, target_class);
-			ci->u.env = env;
-		}
-		proc->e.env = env;
-		proc->flags |= MRB_PROC_ENVSET;
-		mrb_field_write_barrier(_state,
-		    reinterpret_cast<RBasic *>(proc),
-		    reinterpret_cast<RBasic *>(env));
+	// MRB_TRY()
+	// mrb_toplevel_run(_state, proc);
+	// MRB_CATCH(_state->jmp)
+	// _log->critical("Exception while executing {}: {}", source,
+	// 	to_string_view()
+	// MRB_END_EXC()
+
+	try {
+		mrb_toplevel_run(_state, proc);
+	} catch (mrb_jmpbuf *e) {
+		if (e != (_state->jmp)) { throw e; }
+		mrb_ccontext_free(_state, ctx);
+		mrb_parser_free(p);
+		assert(_state->exc != nullptr);
+		_log->critical("Exception while executing {}: {}", source,
+		    exception_string().value());
+		return false;
 	}
-	proc->upper = scope;
-	mrb_vm_ci_target_class_set(_state->c->ci, target_class);
-	mrb_parser_free(p);
-	mrb_ccontext_free(_state, ctx);
-	ci->n = 0;
-	ci->nk = 0;
-	MRB_CI_SET_VISIBILITY_BREAK(ci);
-	ci->stack[1] = mrb_nil_value();
-	const auto ret = mrb_exec_irep(_state, mrb_top_self(_state), proc);
+
 	if (_state->exc) {
 		_log->critical("Failed to execute {}: {}", source,
-		    mrb_obj_value(_state->exc));
+		    exception_string().value());
 		_state->exc = nullptr;
 		return false;
 	}
+
 	return true;
 }
 
 bool
 euler::game::State::initialize()
 {
-	return load_core() && load(_config.entry_file);
+	return load_core() && load_entry(_config.entry_file);
 }
 
 bool
@@ -356,6 +375,7 @@ euler::game::State::loop(int &exit_code)
 		return false;
 	}
 	_log->trace("Processing event: {}", e.type);
+	return true;
 }
 
 /* Kernel#require implementation */
@@ -366,7 +386,7 @@ euler::game::State::require(const std::string_view path)
 		_log->debug("Module '{}' already loaded", path);
 		return false;
 	}
-	auto data = _storage->load_text_file(path);
+	const auto data = _storage->load_text_file(path);
 	if (!load_text(path, data)) {
 		_log->error("Failed to load module '{}'", path);
 		return false;

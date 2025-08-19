@@ -8,5 +8,4 @@ set_target_properties(euler_main PROPERTIES
 
 target_link_libraries(euler_main PUBLIC
         euler_game
-        Vulkan2D
 )

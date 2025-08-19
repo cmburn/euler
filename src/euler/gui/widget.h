@@ -3,13 +3,19 @@
 #ifndef EULER_GUI_WIDGET_H
 #define EULER_GUI_WIDGET_H
 
+#include <optional>
+#include <string>
+
+#include <glm/glm.hpp>
+
+#include "element.h"
 #include "euler/util/object.h"
 
 namespace euler::gui {
-class Widget : public Util::Object {
+class Widget : public util::Object {
 public:
-	Widget(const Util::WeakReference<Util::Logger> &parent);
-	using Rectangle = Eigen::Matrix2f;
+	Widget(const util::WeakReference<util::Logger> &parent);
+	using Rectangle = glm::mat2;
 
 	struct Config {
 		Config();
@@ -33,20 +39,20 @@ public:
 	void
 	set_position(const float x, const float y)
 	{
-		_position = Eigen::Vector2f(x, y);
+		_position = glm::vec2(x, y);
 	}
 
 	void
 	set_size(const float w, const float h)
 	{
-		_size = Eigen::Vector2f(w, h);
+		_size = glm::vec2(w, h);
 	}
 
 	Widget(std::string_view name, float x, float y, float w, float h,
 	    Config config = {});
 
 	void
-	add_row(std::vector<Util::Reference<Element>> &&row)
+	add_row(std::vector<util::Reference<Element>> &&row)
 	{
 		_rows.emplace_back(std::move(row));
 	}
@@ -54,9 +60,9 @@ public:
 private:
 	Config _config;
 	std::string _name;
-	Eigen::Vector2f _position;
-	Eigen::Vector2f _size;
-	std::vector<std::vector<Util::Reference<Element>>> _rows;
+	glm::vec2 _position;
+	glm::vec2 _size;
+	std::vector<std::vector<util::Reference<Element>>> _rows;
 
 	bool _first_init;
 };

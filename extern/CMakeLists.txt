@@ -9,12 +9,30 @@ add_subdirectory(glm)
 add_subdirectory(physfs)
 add_subdirectory(nlohmann-json)
 add_subdirectory(VulkanMemoryAllocator)
+add_subdirectory(spdlog)
+
+target_sources(physfs-static PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/physfs/extras/physfssdl3.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/physfs/extras/physfssdl3.h
+)
+
+target_include_directories(physfs-static INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/physfs/extras>
+        $<INSTALL_INTERFACE:include/>
+)
+
+target_include_directories(VulkanMemoryAllocator INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/VulkanMemoryAllocator/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/VulkanMemoryAllocator/src
+)
 
 set(MRUBY_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mruby/build/host/include
         CACHE PATH "Path to the mruby include directory" FORCE)
 add_library(mruby_headers INTERFACE)
 target_include_directories(mruby_headers INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/mruby/build/host/include)
-set(MRUBY_LIBRARY ${CMAKE_CURRENT_SOURCE_DIR}/mruby/build/host/lib/libmruby.a
+set(MRUBY_LIBRARIES
+        ${CMAKE_CURRENT_SOURCE_DIR}/mruby/build/host/lib/libmruby.a
+        ${CMAKE_CURRENT_SOURCE_DIR}/mruby/build/host/lib/libmruby_core.a
         CACHE FILEPATH "Path to the mruby library" FORCE)
 
 set(MRUBY_LDFLAGS PARENT_SCOPE -lmruby -lws2_32 -lwsock32 -lws2_32)

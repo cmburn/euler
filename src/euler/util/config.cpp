@@ -2,19 +2,21 @@
 
 #include "euler/util/config.h"
 
+extern "C" {
 #include "euler/util/optparse.h"
+}
 
 #include <iostream>
 #include <thread>
 #include <unordered_map>
 
-static constexpr unsigned long long DEFAULT_THREAD_COUNT = euler::util::DEFAULT_THREAD_COUNT;
+static constexpr unsigned long long DEFAULT_THREAD_COUNT
+    = euler::util::DEFAULT_THREAD_COUNT;
 
 using Severity = euler::util::Logger::Severity;
 using SeverityMap = std::unordered_map<std::string_view, Severity>;
 static const SeverityMap LOG_LEVELS = {
 	{ "trace", Severity::Trace },
-	{ "verbose", Severity::Verbose },
 	{ "debug", Severity::Debug },
 	{ "info", Severity::Info },
 	{ "warn", Severity::Warn },
@@ -58,7 +60,7 @@ Notes:
 	an object that inherits from `Euler::Game::State` and assign it to
 	`$state`.
 )EOF",
-	    euler::util::VERSION.to_string(), progname, DEFAULT_THREAD_COUNT)
+	    euler::util::version().to_string(), progname, DEFAULT_THREAD_COUNT)
 	    << std::endl;
 	exit(is_error ? EXIT_FAILURE : EXIT_SUCCESS);
 }
@@ -66,7 +68,6 @@ Notes:
 static void
 parse_config_file(euler::util::Config &config, std::string_view path)
 {
-
 }
 
 static void
@@ -106,7 +107,6 @@ parse_thread_count(euler::util::Config &config, std::string_view opt)
 euler::util::Config
 euler::util::Config::parse_args(int argc, char **argv)
 {
-	using Severity = util::Logger::Severity;
 	static constexpr struct optparse_long LONGOPTS[] = {
 		{
 		    .longname = "include",
@@ -170,7 +170,7 @@ euler::util::Config::parse_args(int argc, char **argv)
 	while ((opt = optparse_long(&options, LONGOPTS, nullptr)) != -1) {
 		switch (opt) {
 		case 'I': out.load_path.emplace_back(options.optarg); break;
-		case 'V': std::cout << VERSION << std::endl; exit(0);
+		case 'V': std::cout << util::version() << std::endl; exit(0);
 		case 'c': parse_config_file(out, options.optarg); break;
 		case 'h': usage(out.progname, false); break;
 		case 'l': {
@@ -199,5 +199,15 @@ euler::util::Config::parse_args(int argc, char **argv)
 	}
 	out.log_level
 	    = std::clamp(out.log_level, Severity::Trace, Severity::Critical);
+	if (argc - options.optind > 1) {
+		std::cerr << "Only one entry file can be specified"
+			  << std::endl;
+		usage(out.progname);
+	}
+	if (argc - options.optind < 1) {
+		std::cerr << "An entry file must be specified" << std::endl;
+		usage(out.progname);
+	}
+	out.entry_file = options.argv[options.optind];
 	return out;
 }

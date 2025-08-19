@@ -5,6 +5,8 @@
 
 #include "euler/util/object.h"
 
+#include "euler/gui/element.h"
+
 namespace euler::gui {
 class Knob : public Element {
 public:

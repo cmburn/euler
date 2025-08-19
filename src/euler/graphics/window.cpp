@@ -1,9 +1,9 @@
 /* SPDX-License-Identifier: ISC */
 
 #include <mutex>
+#include <stdexcept>
 
 #include "euler/graphics/window.h"
-#include "euler/util/sdl.h"
 
 static constexpr int
 sdl_init_flags()
@@ -27,10 +27,19 @@ sdl_init_flags()
 	return flags;
 }
 
+static void sdl_init()
+{
+	static std::once_flag sdl_init_flag;
+	std::call_once(sdl_init_flag, []() {
+		if (SDL_Init(sdl_init_flags()) != 0)
+			throw std::runtime_error(SDL_GetError());
+	});
+}
+
 euler::graphics::Window::Window(const std::string &title, const int width,
     const int height, const SDL_WindowFlags flags)
 {
-	util::sdl_init();
+//	util::sdl_init();
 	_window = SDL_CreateWindow(title.c_str(), width, height, flags);
 }
 

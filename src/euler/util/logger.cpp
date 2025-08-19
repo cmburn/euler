@@ -7,175 +7,126 @@
 #include <unordered_map>
 
 #include <SDL3/SDL_time.h>
+#include <spdlog/spdlog.h>
 
+#include "config.h"
 #include "euler/util/logger.h"
 #include "euler/util/state.h"
+#include "spdlog/sinks/basic_file_sink.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
 
-#define MAX_SEVERITY_LABEL_LENGTH (sizeof("critical") - 1)
-#define MAX_TIME_STRING_SIZE 26
+using Level = euler::util::Logger::Severity;
 
-static std::unordered_map<std::filesystem::path,
-    euler::util::Reference<euler::util::Logger::Sink>>
-    files;
-static std::mutex files_mutex;
-//
-// struct euler::util::Logger::Sink::stream {
-// 	std::filesystem::path path = {};
-// 	mutable std::mutex mutex = {};
-// 	FILE *file = nullptr;
-// 	stream(std::filesystem::path &&path, FILE *output = nullptr)
-// 	    : path(std::move(path))
-// 	    , file(output)
-// 	{
-// 	}
-//
-// 	void
-// 	write(const std::string_view msg) const
-// 	{
-// 		std::scoped_lock lock(mutex);
-// 		fwrite(msg.data(), sizeof(char), msg.size(), file);
-// 	}
-//
-// 	stream(FILE *output)
-// 	    : file(output)
-// 	{
-// 		assert(output == stdout || output == stderr);
-// 	}
-//
-// 	~stream();
-// };
-//
-// euler::util::Logger::Sink::stream::~stream()
-// {
-// 	if (file == stdout || file == stderr || file == nullptr) return;
-// 	fclose(file);
-// }
-//
-euler::util::Logger::Sink::~Sink()
+static Level
+from_spdlog_level(const spdlog::level::level_enum level)
 {
-	if (_file == stdout || _file == stderr || _file == nullptr) return;
-	fclose(_file);
-}
-//
-euler::util::Reference<euler::util::Logger::Sink>
-euler::util::Logger::file_sink(const std::filesystem::path &path)
-{
-	std::scoped_lock lock(files_mutex);
-	auto absolute = std::filesystem::absolute(path);
-	if (files.contains(absolute)) return files.at(absolute);
-	auto file = fopen(absolute.c_str(), "a");
-	if (file == nullptr) {
-		throw std::runtime_error(
-		    "Failed to open log file: " + absolute.string());
-	}
-	auto output = util::Reference(new Sink(file));
-	output->_path = std::move(absolute);
-	files[absolute] = output;
-	return output;
-}
-//
-euler::util::Reference<euler::util::Logger::Sink>
-euler::util::Logger::stdout_sink()
-{
-	static auto stdout_output = util::Reference(new Sink(stdout));
-	return stdout_output;
-}
-
-euler::util::Reference<euler::util::Logger::Sink>
-euler::util::Logger::stderr_sink()
-{
-	static auto stderr_output = util::Reference(new Sink(stderr));
-	return stderr_output;
-}
-euler::util::Logger::Logger(Reference<State> state, const Severity severity,
-    const std::string_view progname, Reference<Sink> output_sink,
-    Reference<Sink> error_sink)
-    : Object(state)
-    , _output_sink(std::move(output_sink))
-    , _error_sink(std::move(error_sink))
-    , _severity(severity)
-    , _progname(progname)
-{
-}
-
-static std::string_view
-severity_to_string(const euler::util::Logger::Severity severity)
-{
-	switch (severity) {
-	case euler::util::Logger::Severity::Trace: return "trace";
-	case euler::util::Logger::Severity::Verbose: return "verbose";
-	case euler::util::Logger::Severity::Debug: return "debug";
-	case euler::util::Logger::Severity::Info: return "info";
-	case euler::util::Logger::Severity::Warn: return "warn";
-	case euler::util::Logger::Severity::Error: return "error";
-	case euler::util::Logger::Severity::Critical: return "critical";
-	default: return "invalid";
+	switch (level) {
+	case spdlog::level::trace: return Level::Trace;
+	case spdlog::level::debug: return Level::Debug;
+	case spdlog::level::info: return Level::Info;
+	case spdlog::level::warn: return Level::Warn;
+	case spdlog::level::err: return Level::Error;
+	case spdlog::level::critical: return Level::Critical;
+	case spdlog::level::off: return Level::Off;
+	default: throw std::runtime_error("Unknown log level");
 	}
 }
 
-static void
-write_time_string(char *buf)
+static spdlog::level::level_enum
+to_spdlog_level(const Level level)
 {
-	static const char *WEEK_DAYS[] = {
-		"Sun",
-		"Mon",
-		"Tue",
-		"Wed",
-		"Thu",
-		"Fri",
-		"Sat",
-	};
-	static const char *MONTHS[] = {
-		"Jan",
-		"Feb",
-		"Mar",
-		"Apr",
-		"May",
-		"Jun",
-		"Jul",
-		"Aug",
-		"Sep",
-		"Oct",
-		"Nov",
-		"Dec",
-	};
-	SDL_Time time;
-	SDL_DateTime dt;
-
-	if (!SDL_GetCurrentTime(&time)
-	    || !SDL_TimeToDateTime(time, &dt, true)) {
-		memset(buf, '-', MAX_TIME_STRING_SIZE);
-		return;
+	switch (level) {
+	case Level::Trace: return spdlog::level::trace;
+	case Level::Debug: return spdlog::level::debug;
+	case Level::Info: return spdlog::level::info;
+	case Level::Warn: return spdlog::level::warn;
+	case Level::Error: return spdlog::level::err;
+	case Level::Critical: return spdlog::level::critical;
+	case Level::Off: return spdlog::level::off;
+	default: throw std::runtime_error("Unknown log level");
 	}
-
-	snprintf(buf, MAX_TIME_STRING_SIZE, "%s %s %i %02d:%02d:%02d %i",
-	    WEEK_DAYS[dt.day_of_week], MONTHS[dt.month - 1], dt.day, dt.hour,
-	    dt.minute, dt.second, dt.year);
 }
 
-static std::string
-format_string(const euler::util::Logger::Severity severity,
-    const std::string_view progname, const std::string_view message)
+struct euler::util::Logger::Sink::impl {
+	impl(std::shared_ptr<spdlog::sinks::sink> &&sink)
+	    : sink(std::move(sink))
+	{
+		assert(this->sink != nullptr);
+	}
+	std::shared_ptr<spdlog::sinks::sink> sink;
+};
+
+struct euler::util::Logger::impl {
+	impl(std::shared_ptr<spdlog::logger> &&log)
+	    : log(std::move(log))
+	{
+		assert(this->log != nullptr);
+	}
+	std::shared_ptr<spdlog::logger> log;
+};
+
+euler::util::Logger::Sink::~Sink() = default;
+euler::util::Logger::Sink::Sink(const std::filesystem::path &path)
 {
-	char time_buf[MAX_TIME_STRING_SIZE];
-	std::stringstream ss;
-	write_time_string(time_buf);
-	auto sev_str = severity_to_string(severity);
-	ss << "[" << time_buf << "] "
-	   << "[" << sev_str << "] "
-	   << "[" << progname << "] ";
-	for (size_t i = (sizeof("critical") - sev_str.size()); i > 0; i--)
-		ss << ' ';
-	ss << "-- " << message << '\n';
-	return ss.str();
+	_impl = std::make_shared<impl>(
+	    std::make_shared<spdlog::sinks::basic_file_sink_mt>(path.string(),
+		false));
 }
 
 void
-euler::util::Logger::write_log(const Severity severity,
-    const std::string_view message) const
+euler::util::Logger::Sink::set_severity(Severity level)
 {
-	assert(should_log(severity));
-	const auto str = format_string(severity, progname(), message);
-	if (this->severity() >= Severity::Warn) _error_sink->write(str);
-	_output_sink->write(str);
+	_impl->sink->set_level(to_spdlog_level(level));
+}
+
+euler::util::Logger::Severity
+euler::util::Logger::Sink::severit() const
+{
+	return from_spdlog_level(_impl->sink->level());
+}
+
+euler::util::Logger::Sink::Sink(std::shared_ptr<impl> &&sink)
+    : _impl(std::move(sink))
+{
+}
+
+euler::util::Logger::Sink
+euler::util::Logger::stdout_sink()
+{
+	auto sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+	return Sink(std::make_shared<Sink::impl>(std::move(sink)));
+}
+
+euler::util::Logger::Sink
+euler::util::Logger::stderr_sink()
+{
+	auto sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
+	sink->set_level(spdlog::level::warn);
+	return Sink(std::make_shared<Sink::impl>(std::move(sink)));
+}
+std::vector<euler::util::Logger::Sink>
+euler::util::Logger::default_sinks()
+{
+	return { stdout_sink(), stderr_sink() };
+}
+
+euler::util::Logger::Logger(const std::vector<Sink> &sinks,
+    std::string_view progname, Severity level)
+    : _progname(progname)
+    , _level(level)
+{
+	std::vector<std::shared_ptr<spdlog::sinks::sink>> spd_sinks;
+	spd_sinks.reserve(sinks.size());
+	for (const auto &sink : sinks) spd_sinks.push_back(sink._impl->sink);
+	auto log = std::make_shared<spdlog::logger>(_progname,
+	    spd_sinks.begin(), spd_sinks.end());
+	spdlog::details::registry::instance().initialize_logger(log);
+	_impl = std::make_shared<impl>(std::move(log));
+}
+
+void
+euler::util::Logger::write_log(const Severity level,
+    const std::string &message) const
+{
+	_impl->log->log(to_spdlog_level(level), message);
 }

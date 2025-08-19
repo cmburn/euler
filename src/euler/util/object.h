@@ -86,11 +86,10 @@ class Object {
 	template <typename T> friend class Reference;
 	template <typename T> friend class WeakReference;
 	friend class State;
+	friend class Logger;
 
 public:
-	Object();
-	Object(Reference<State> state);
-	Object(WeakReference<State> state);
+	Object() = default;
 	virtual ~Object() = default;
 
 	[[nodiscard]] uint32_t
@@ -99,20 +98,8 @@ public:
 		return _count;
 	}
 
-	Reference<State> state() const;
-
 protected:
 	Object(Object *parent);
-
-	template <typename T, typename... Args>
-	Reference<T>
-	make_object(Args &&...args)
-	{
-		auto ptr = new T(state(), std::forward<Args>(args)...);
-		return Reference<T>(ptr);
-	}
-
-	Reference<Logger> log() const;
 
 private:
 	/* We're in a weird position because State is also an object, but
@@ -120,13 +107,13 @@ private:
 	 * must be passed a State reference in their constructor. This private
 	 * constructor allows us to create an Object without a State.
 	 */
-	struct StateArg {};
-	explicit Object(StateArg)
-	    : _count(1)
-	{
-	}
+	// struct StateArg {};
+	// explicit Object(StateArg)
+	//     : _count(1)
+	// {
+	// }
 
-	WeakReference<State> _state;
+	// WeakReference<State> _state;
 	std::atomic<uint32_t> _count;
 };
 

@@ -13,19 +13,19 @@ add_library(euler_util STATIC
         version.h
         thread.cpp
         thread.h
-        ext.cpp
-        ext.h
         config.cpp
         config.h
 )
 
 target_link_libraries(euler_util PUBLIC
         mruby_headers
+        ${MRUBY_LIBRARIES}
         SDL3-static
 )
 
 target_link_libraries(euler_util PRIVATE
         physfs-static
+        spdlog::spdlog
 )
 
 target_include_directories(euler_util PUBLIC
