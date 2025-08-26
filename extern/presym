@@ -148,6 +148,7 @@ trace
 type
 unknown
 value
+verbose
 warn
 which
 will_enter_background

@@ -20,6 +20,7 @@ class Logger final : public Object {
 public:
 	enum class Severity {
 		Trace,
+		Verbose = Trace,
 		Debug,
 		Info,
 		Warn,
@@ -30,6 +31,10 @@ public:
 		Unknown,
 	};
 
+	using severity_enum_t = std::underlying_type_t<Severity>;
+
+	static Severity coerce_severity(severity_enum_t level);
+
 	class Sink {
 		friend class Logger;
 
@@ -37,7 +42,7 @@ public:
 		~Sink();
 		Sink(const std::filesystem::path &path);
 		void set_severity(Severity level);
-		Severity severit() const;
+		Severity severity() const;
 
 	private:
 		struct impl;

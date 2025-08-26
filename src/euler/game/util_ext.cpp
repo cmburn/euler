@@ -41,6 +41,7 @@ mrb_value_to_severity(mrb_state *mrb, mrb_value value)
 	if (mrb_symbol_p(value)) {
 		switch (mrb_symbol(value)) {
 		case MRB_SYM(trace): return Logger::Severity::Trace;
+		case MRB_SYM(verbose): return Logger::Severity::Trace;
 		case MRB_SYM(debug): return Logger::Severity::Debug;
 		case MRB_SYM(info): return Logger::Severity::Info;
 		case MRB_SYM(warn): return Logger::Severity::Warn;
@@ -49,6 +50,29 @@ mrb_value_to_severity(mrb_state *mrb, mrb_value value)
 		case MRB_SYM(fatal): return Logger::Severity::Critical;
 		case MRB_SYM(off): return Logger::Severity::Off;
 		default: break;
+		}
+	} else if (mrb_integer_p(value)) {
+		const auto n = mrb_integer(value);
+		return Logger::coerce_severity(n);
+	} else if (mrb_string_p(value)) {
+		using SeverityMap
+		    = std::unordered_map<std::string_view, Logger::Severity>;
+		static const SeverityMap STR_TO_SEVERITY = {
+			{ "trace", Logger::Severity::Trace },
+			{ "verbose", Logger::Severity::Trace },
+			{ "debug", Logger::Severity::Debug },
+			{ "info", Logger::Severity::Info },
+			{ "warn", Logger::Severity::Warn },
+			{ "error", Logger::Severity::Error },
+			{ "critical", Logger::Severity::Critical },
+			{ "fatal", Logger::Severity::Critical },
+			{ "off", Logger::Severity::Off },
+			{ "unknown", Logger::Severity::Unknown },
+		};
+		const auto str = mrb_str_to_cstr(mrb, value);
+		if (const auto it = STR_TO_SEVERITY.find(str);
+		    it != STR_TO_SEVERITY.end()) {
+			return it->second;
 		}
 	}
 	mrb_raise(mrb, E_ARGUMENT_ERROR, "Unexpected logger level");
@@ -100,9 +124,10 @@ logger_progname(mrb_state *mrb, const mrb_value self_value)
 static mrb_value
 logger_sink_set_severity(mrb_state *mrb, mrb_value self_value)
 {
-	auto self
-	    = unwrap_ptr<Logger::Sink>(mrb, self_value, &LOGGER_SINK_TYPE);
-
+	const auto level_value = mrb_get_arg1(mrb);
+	const auto level = mrb_value_to_severity(mrb, level_value);
+	auto self = unwrap<Logger::Sink>(mrb, self_value, &LOGGER_SINK_TYPE);
+	self->set_severity(level);
 }
 
 static void
@@ -111,6 +136,9 @@ init_logger_sink(mrb_state *mrb, Modules &mod)
 	mod.util.logger.sink = mrb_define_class_under(mrb,
 	    mod.util.logger.klass, "Sink", mrb->object_class);
 	const auto sink = mod.util.logger.sink;
+	mrb_define_method(mrb, sink, "severity", logger_severity, 0);
+	mrb_define_method(mrb, sink, "severity=", logger_sink_set_severity,
+	    MRB_ARGS_REQ(1));
 }
 
 static void
@@ -126,6 +154,9 @@ init_logger(mrb_state *mrb, Modules &mod)
 	mrb_define_class_method(mrb, log, "log", logger_log, MRB_ARGS_REQ(2));
 	mrb_define_class_method(mrb, log, "trace",
 	    logger_log_with_severity<Logger::Severity::Trace>, MRB_ARGS_REQ(1));
+	mrb_define_class_method(mrb, log, "verbose",
+	    logger_log_with_severity<Logger::Severity::Verbose>,
+	    MRB_ARGS_REQ(1));
 	mrb_define_class_method(mrb, log, "debug",
 	    logger_log_with_severity<Logger::Severity::Debug>, MRB_ARGS_REQ(1));
 	mrb_define_class_method(mrb, log, "info",
@@ -138,8 +169,7 @@ init_logger(mrb_state *mrb, Modules &mod)
 	    logger_log_with_severity<Logger::Severity::Critical>,
 	    MRB_ARGS_REQ(1));
 	mrb_define_class_method(mrb, log, "fatal",
-	    logger_log_with_severity<Logger::Severity::Critical>,
-	    MRB_ARGS_REQ(1));
+	    logger_log_with_severity<Logger::Severity::Fatal>, MRB_ARGS_REQ(1));
 	mrb_define_class_method(mrb, log, "off",
 	    logger_log_with_severity<Logger::Severity::Off>, MRB_ARGS_REQ(1));
 	mrb_define_class_method(mrb, log, "unknown",
@@ -149,6 +179,7 @@ init_logger(mrb_state *mrb, Modules &mod)
 static void
 init_storage(mrb_state *mrb, Modules &mod)
 {
+
 }
 
 void

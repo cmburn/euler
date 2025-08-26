@@ -40,18 +40,16 @@ unwrap(mrb_state *mrb, const mrb_value &value, const mrb_data_type *type)
 	return util::Reference<T>::unwrap(ptr);
 }
 
-template <typename T>
-static T *
-unwrap_ptr(mrb_state *mrb, const mrb_value &value,
-    const mrb_data_type *type)
-{
-	if (mrb_nil_p(value)) return nullptr;
-	auto ptr = mrb_data_get_ptr(mrb, value, type);
-	if (ptr == nullptr) {
-		mrb_raise(mrb, E_TYPE_ERROR, "Expected a " #T " object");
-	}
-	return static_cast<T *>(ptr);
-}
+// template <typename T>
+// static T *
+// unwrap_ptr(mrb_state *mrb, const mrb_value &value, const mrb_data_type *type)
+// {
+// 	if (mrb_nil_p(value)) return nullptr;
+// 	auto ptr = mrb_data_get_ptr(mrb, value, type);
+// 	if (ptr != nullptr) return static_cast<T *>(ptr);
+// 	mrb_raisef(mrb, E_TYPE_ERROR, "Expected a %s object",
+// 	    type->struct_name);
+// }
 
 } /* namespace euler::game */
 

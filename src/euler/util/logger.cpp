@@ -65,6 +65,20 @@ struct euler::util::Logger::impl {
 	std::shared_ptr<spdlog::logger> log;
 };
 
+euler::util::Logger::Severity
+euler::util::Logger::coerce_severity(severity_enum_t level)
+{
+	switch (static_cast<Severity>(level)) {
+	case Severity::Trace: return Severity::Trace;
+	case Severity::Debug: return Severity::Debug;
+	case Severity::Info: return Severity::Info;
+	case Severity::Warn: return Severity::Warn;
+	case Severity::Error: return Severity::Error;
+	case Severity::Critical: return Severity::Critical;
+	default: return Severity::Unknown;
+	}
+}
+
 euler::util::Logger::Sink::~Sink() = default;
 euler::util::Logger::Sink::Sink(const std::filesystem::path &path)
 {
@@ -80,7 +94,7 @@ euler::util::Logger::Sink::set_severity(Severity level)
 }
 
 euler::util::Logger::Severity
-euler::util::Logger::Sink::severit() const
+euler::util::Logger::Sink::severity() const
 {
 	return from_spdlog_level(_impl->sink->level());
 }
