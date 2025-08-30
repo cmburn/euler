@@ -39,3 +39,5 @@ target_compile_definitions(euler_game PUBLIC
         MRB_USE_CXX_ABI
         MRB_USE_CXX_EXCEPTION
 )
+
+target_compile_options(euler_game PRIVATE ${EULER_COMPILE_OPTIONS})

@@ -18,3 +18,4 @@ target_link_libraries(euler_graphics PUBLIC
         euler_vulkan
         glm::glm
 )
+target_compile_options(euler_graphics PRIVATE ${EULER_COMPILE_OPTIONS})

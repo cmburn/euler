@@ -20,7 +20,8 @@ protected:
 public:
 	~State() override = default;
 	[[nodiscard]] virtual Reference<Logger> log() const = 0;
-	[[nodiscard]] virtual Reference<Storage> storage() const = 0;
+	[[nodiscard]] virtual Reference<Storage> user_storage() const = 0;
+	[[nodiscard]] virtual Reference<Storage> title_storage() const = 0;
 };
 } /* namespace Euler::MRuby */
 

@@ -66,7 +66,7 @@ Notes:
 }
 
 static void
-parse_config_file(euler::util::Config &config, std::string_view path)
+parse_config_file(euler::util::Config &, std::string_view )
 {
 }
 
@@ -158,6 +158,7 @@ euler::util::Config::parse_args(int argc, char **argv)
 
 	Config out = {
 		.progname = argv[0],
+		.entry_file = {},
 		.name = "euler",
 		.version = util::Version(0, 1, 0),
 		.log_level = Severity::Info,

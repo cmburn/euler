@@ -25,3 +25,5 @@ target_link_libraries(euler_gui PUBLIC
         euler_util
         euler_graphics
 )
+
+target_compile_options(euler_gui PRIVATE ${EULER_COMPILE_OPTIONS})

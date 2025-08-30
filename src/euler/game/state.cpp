@@ -26,12 +26,34 @@
 static auto state_count = std::binary_semaphore(1);
 static std::thread::id main_thread_id;
 
-static constexpr SDL_InitFlags SDL_FLAGS = //
-    SDL_INIT_AUDIO			   //
-    | SDL_INIT_VIDEO			   //
-    | SDL_INIT_EVENTS			   //
-    | SDL_INIT_GAMEPAD			   //
-    ;
+// static constexpr SDL_InitFlags SDL_FLAGS = //
+//     SDL_INIT_AUDIO			   //
+//     | SDL_INIT_VIDEO			   //
+//     | SDL_INIT_EVENTS			   //
+//     | SDL_INIT_GAMEPAD			   //
+//     ;
+
+static constexpr int
+sdl_init_flags()
+{
+	int flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS;
+#ifdef EULER_USE_JOYSTICK
+	flags |= SDL_INIT_JOYSTICK;
+#endif
+#ifdef EULER_USE_HAPTIC
+	flags |= SDL_INIT_HAPTIC;
+#endif
+#ifdef EULER_USE_GAMEPAD
+	flags |= SDL_INIT_GAMEPAD;
+#endif
+#ifdef EULER_USE_SENSOR
+	flags |= SDL_INIT_SENSOR;
+#endif
+#ifdef EULER_USE_CAMERA
+	flags |= SDL_INIT_CAMERA;
+#endif
+	return flags;
+}
 
 euler::game::State::State(const util::Config &config)
     : _config(config)
@@ -55,18 +77,6 @@ euler::game::State::exception_string()
 	return std::string_view(ptr, len);
 }
 
-static void
-init_state(euler::util::Reference<euler::game::State> self)
-{
-	using namespace euler::game;
-	init_util(self);
-	init_vulkan(self);
-	init_graphics(self);
-	init_gui(self);
-	init_physics(self);
-	init_game(self);
-}
-
 bool
 euler::game::State::load_core()
 {
@@ -77,7 +87,6 @@ euler::game::State::load_core()
 	 * - Game logic/mruby interpreter
 	 * - Physics
 	 */
-	log()->info("Initializing state with {} threads", _config.num_threads);
 	static std::once_flag once;
 	std::call_once(once, [&]() {
 		log()->info("Initializing global state...");
@@ -85,10 +94,11 @@ euler::game::State::load_core()
 		log()->info("Initializing global storage...");
 		init_fs(_config.progname.c_str());
 		log()->info("Initializing global SDL...");
-		SDL_Init(SDL_FLAGS);
+		SDL_Init(sdl_init_flags());
 		log()->info("Global initialization complete");
 	});
-
+	log()->info("Creating window");
+	_window = util::make_reference<graphics::Window>(_config.progname);
 	log()->info("Initializing interpreter");
 	_state = mrb_open();
 	if (_state == nullptr) {
@@ -99,10 +109,19 @@ euler::game::State::load_core()
 	_state->ud = util::unsafe_cast<void *>(weak);
 	log()->info("Initializing core modules");
 	/* TODO: proper physfs limiting for module load */
-	const auto self = util::Reference(this);
-	init_state(self);
-
+	_euler.module = mrb_define_module(_state, "Euler");
+	auto self = util::Reference(this);
+	init_util(self);
+	init_vulkan(self);
+	init_graphics(self);
+	init_gui(self);
+	init_physics(self);
+	init_game(self);
+	auto data = Data_Wrap_Struct(_state, _euler.game.state, &STATE_TYPE,
+	    self.wrap());
+	_self_value = mrb_obj_value(data);
 	_log->debug("Core modules initialized");
+
 	return true;
 }
 
@@ -127,8 +146,8 @@ euler::game::State::load_entry(std::string_view path)
 	return true;
 }
 
-static mrb_sym
-sdl_event_sym(mrb_state *mrb, SDL_Event &e)
+[[maybe_unused]] static mrb_sym
+sdl_event_sym([[maybe_unused]] mrb_state *mrb, SDL_Event &e)
 {
 	switch (static_cast<SDL_EventType>(e.type)) {
 	case SDL_EVENT_QUIT: return MRB_SYM(quit);
@@ -300,7 +319,7 @@ euler::game::State::load_text(std::string_view source, std::string_view data)
 		return false;
 	}
 	if (p->nerr > 0) {
-		for (int i = 0; i < p->nerr; i++) {
+		for (size_t i = 0; i < p->nerr; i++) {
 			const auto &[lineno, column, message]
 			    = p->error_buffer[i];
 			_log->critical("Error in {}: {} at line {}: {}", source,
@@ -317,12 +336,6 @@ euler::game::State::load_text(std::string_view source, std::string_view data)
 		mrb_parser_free(p);
 		return false;
 	}
-	// MRB_TRY()
-	// mrb_toplevel_run(_state, proc);
-	// MRB_CATCH(_state->jmp)
-	// _log->critical("Exception while executing {}: {}", source,
-	// 	to_string_view()
-	// MRB_END_EXC()
 
 	try {
 		mrb_toplevel_run(_state, proc);
@@ -336,6 +349,9 @@ euler::game::State::load_text(std::string_view source, std::string_view data)
 		return false;
 	}
 
+	mrb_ccontext_free(_state, ctx);
+	mrb_parser_free(p);
+
 	if (_state->exc) {
 		_log->critical("Failed to execute {}: {}", source,
 		    exception_string().value());
@@ -346,10 +362,21 @@ euler::game::State::load_text(std::string_view source, std::string_view data)
 	return true;
 }
 
+euler::util::Reference<euler::game::State>
+euler::game::read_state(mrb_state *mrb)
+{
+	const auto weak
+	    = util::unsafe_cast<util::WeakReference<State>>(mrb->ud);
+	return weak.strengthen();
+}
+
 bool
 euler::game::State::initialize()
 {
-	return load_core() && load_entry(_config.entry_file);
+	log()->info("Initializing state with {} threads", _config.num_threads);
+	if (!load_core()) return false;
+	if (!load_entry(_config.entry_file)) return false;
+	return true;
 }
 
 bool
@@ -369,29 +396,30 @@ euler::game::State::loop(int &exit_code)
 		exit_code = EXIT_FAILURE;
 		return false;
 	}
+	_log->trace("Received event {}", e.type);
 	if (e.type == SDL_EVENT_QUIT) {
 		_log->info("Received quit event, exiting loop");
 		exit_code = 0;
 		return false;
 	}
-	_log->trace("Processing event: {}", e.type);
 	return true;
 }
 
 /* Kernel#require implementation */
 bool
-euler::game::State::require(const std::string_view path)
+euler::game::State::require(const char *path)
 {
-	if (_loaded_modules.contains(path.data())) {
+	const auto str = std::string(path);
+	if (_loaded_modules.contains(str)) {
 		_log->debug("Module '{}' already loaded", path);
 		return false;
 	}
-	const auto data = _storage->load_text_file(path);
+	const auto data = _user_storage->read_file(path);
 	if (!load_text(path, data)) {
 		_log->error("Failed to load module '{}'", path);
 		return false;
 	}
-	_loaded_modules.insert(path.data());
+	_loaded_modules.insert(std::move(str));
 	_log->info("Module '{}' loaded successfully", path);
 
 	return true;

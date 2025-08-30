@@ -3,7 +3,9 @@
 #include "euler/game/util_ext.h"
 
 #include "euler/game/ext.h"
-#include "mruby/string.h"
+
+#include <mruby/array.h>
+#include <mruby/string.h>
 
 using namespace euler::util;
 using namespace euler::game;
@@ -12,11 +14,6 @@ using Modules = euler::game::State::Modules;
 /* TODO: Config and Version classes are both non-object structs, need to be
  *       handled differently. */
 
-static constexpr auto LOGGER_TYPE = REFERENCE_TYPE(euler::util::Logger);
-static constexpr auto LOGGER_SINK_TYPE = DATA_TYPE(euler::util::Logger::Sink);
-static constexpr auto STORAGE_TYPE = REFERENCE_TYPE(euler::util::Storage);
-static constexpr auto CONFIG_TYPE = DATA_TYPE(euler::util::Config);
-static constexpr auto VERSION_TYPE = DATA_TYPE(euler::util::Version);
 
 static mrb_value
 logger_severity(mrb_state *mrb, const mrb_value self_value)
@@ -93,13 +90,13 @@ logger_set_severity(mrb_state *mrb, mrb_value self_value)
 static mrb_value
 logger_log(mrb_state *mrb, mrb_value self_value)
 {
-	auto self = unwrap<Logger>(mrb, self_value, &LOGGER_TYPE);
+	const auto self = unwrap<Logger>(mrb, self_value, &LOGGER_TYPE);
 	mrb_value level_value;
 	mrb_get_args(mrb, "o", &level_value);
 	const auto level = mrb_value_to_severity(mrb, level_value);
 	mrb_value message;
 	mrb_get_args(mrb, "S", &message);
-	self->log(level, mrb_str_to_cstr(mrb, message));
+	self->log(level, "{}", mrb_str_to_cstr(mrb, message));
 	return mrb_nil_value();
 }
 
@@ -110,7 +107,7 @@ logger_log_with_severity(mrb_state *mrb, mrb_value self_value)
 	auto self = unwrap<Logger>(mrb, self_value, &LOGGER_TYPE);
 	mrb_value message;
 	mrb_get_args(mrb, "S", &message);
-	self->log(Level, mrb_str_to_cstr(mrb, message));
+	self->log(Level, "{}", mrb_str_to_cstr(mrb, message));
 	return mrb_nil_value();
 }
 
@@ -126,8 +123,11 @@ logger_sink_set_severity(mrb_state *mrb, mrb_value self_value)
 {
 	const auto level_value = mrb_get_arg1(mrb);
 	const auto level = mrb_value_to_severity(mrb, level_value);
-	auto self = unwrap<Logger::Sink>(mrb, self_value, &LOGGER_SINK_TYPE);
+	auto self
+	    = unwrap_data<Logger::Sink>(mrb, self_value, &LOGGER_SINK_TYPE);
+	assert(self != nullptr);
 	self->set_severity(level);
+	return mrb_nil_value();
 }
 
 static void
@@ -174,20 +174,99 @@ init_logger(mrb_state *mrb, Modules &mod)
 	    logger_log_with_severity<Logger::Severity::Off>, MRB_ARGS_REQ(1));
 	mrb_define_class_method(mrb, log, "unknown",
 	    logger_log_with_severity<Logger::Severity::Off>, MRB_ARGS_REQ(1));
+	init_logger_sink(mrb, mod);
+}
+
+static mrb_value
+storage_ready(mrb_state *mrb, const mrb_value self_value)
+{
+	const auto self = unwrap<Storage>(mrb, self_value, &STORAGE_TYPE);
+	return mrb_bool_value(self->ready());
+}
+
+static mrb_value
+storage_file_size(mrb_state *mrb, const mrb_value self_value)
+{
+	const auto self = unwrap<Storage>(mrb, self_value, &STORAGE_TYPE);
+	char *path;
+	mrb_get_args(mrb, "z", &path);
+	try {
+		const auto size = self->file_size(path);
+		return mrb_fixnum_value(size);
+	} catch (const std::exception &e) {
+		mrb_raise(mrb, E_RUNTIME_ERROR, e.what());
+	}
+}
+
+static mrb_value
+storage_read_file(mrb_state *mrb, const mrb_value self_value)
+{
+	const auto self = unwrap<Storage>(mrb, self_value, &STORAGE_TYPE);
+	char *path_cstr;
+	mrb_get_args(mrb, "z", &path_cstr);
+	const auto path = std::string(path_cstr);
+	try {
+		const auto content = self->read_file(path);
+		return mrb_str_new_cstr(mrb, content.c_str());
+	} catch (const std::exception &e) {
+		mrb_raise(mrb, E_RUNTIME_ERROR, e.what());
+	}
+}
+
+static mrb_value
+storage_write_file(mrb_state *mrb, const mrb_value self_value)
+{
+	const auto self = unwrap<Storage>(mrb, self_value, &STORAGE_TYPE);
+	char *path;
+	mrb_value content_value;
+	mrb_get_args(mrb, "zS", &path, &content_value);
+	const auto content = std::string_view(RSTRING_PTR(content_value),
+	    RSTRING_LEN(content_value));
+	try {
+		self->write_file(path, content);
+		return mrb_nil_value();
+	} catch (const std::exception &e) {
+		mrb_raise(mrb, E_RUNTIME_ERROR, e.what());
+	}
+}
+
+static mrb_value
+storage_create_directory(mrb_state *mrb, const mrb_value self_value)
+{
+	const auto self = unwrap<Storage>(mrb, self_value, &STORAGE_TYPE);
+	char *path;
+	mrb_get_args(mrb, "z", &path);
+	try {
+		self->create_directory(path);
+		return mrb_nil_value();
+	} catch (const std::exception &e) {
+		mrb_raise(mrb, E_RUNTIME_ERROR, e.what());
+	}
 }
 
 static void
 init_storage(mrb_state *mrb, Modules &mod)
 {
-
+	mod.util.storage = mrb_define_class_under(mrb, mod.util.module,
+	    "Storage", mrb->object_class);
+	const auto storage = mod.util.storage;
+	mrb_define_method(mrb, storage, "ready?", storage_ready, MRB_ARGS_NONE());
+	mrb_define_method(mrb, storage, "file_size", storage_file_size,
+	    MRB_ARGS_REQ(1));
+	mrb_define_method(mrb, storage, "read_file", storage_read_file,
+	    MRB_ARGS_REQ(1));
+	mrb_define_method(mrb, storage, "write_file", storage_write_file,
+	    MRB_ARGS_REQ(2));
+	mrb_define_method(mrb, storage, "create_directory",
+	    storage_create_directory, MRB_ARGS_REQ(1));
 }
 
 void
-euler::game::init_util(util::Reference<State> state)
+euler::game::init_util(Reference<State> state)
 {
 	state->log()->info("Initializing Euler::Util...");
 	auto mrb = state->mrb();
-	auto &mod = state->euler();
+	auto &mod = state->module();
 	mod.util.module = mrb_define_module_under(mrb, mod.module, "Util");
 	init_logger(mrb, mod);
 	init_storage(mrb, mod);

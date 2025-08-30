@@ -17,3 +17,5 @@ target_link_libraries(euler_physics PUBLIC
         glm::glm
         euler_util
 )
+
+target_compile_options(euler_physics PRIVATE ${EULER_COMPILE_OPTIONS})

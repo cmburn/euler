@@ -1,11 +1,10 @@
-class Game # < Euler::Game::State
+class Game < Euler::Game::State
   def initialize
     super
-#    log.info("Ruby state initialized")
+    log.info "Hello from Ruby!"
   end
 end
 
 
 $state = Game.new
 
-raise "Failed to init"

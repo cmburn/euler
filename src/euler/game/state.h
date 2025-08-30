@@ -40,7 +40,7 @@ public:
 	 * initialize(). */
 	bool loop(int &exit_code);
 
-	bool require(std::string_view path);
+	bool require(const char *path);
 
 	~State() override = default;
 
@@ -50,9 +50,14 @@ public:
 		return _log;
 	}
 	[[nodiscard]] util::Reference<util::Storage>
-	storage() const override
+	user_storage() const override
 	{
-		return _storage;
+		return _user_storage;
+	}
+	[[nodiscard]] util::Reference<util::Storage>
+	title_storage() const override
+	{
+		return _title_storage;
 	}
 
 	static util::Reference<State>
@@ -63,9 +68,15 @@ public:
 	}
 
 	mrb_state *
-	mrb()
+	mrb() const
 	{
 		return _state;
+	}
+
+	mrb_value
+	self_value() const
+	{
+		return _self_value;
 	}
 
 	struct Modules {
@@ -115,13 +126,13 @@ public:
 	};
 
 	[[nodiscard]] const Modules &
-	euler() const
+	module() const
 	{
 		return _euler;
 	}
 
 	Modules &
-	euler()
+	module()
 	{
 		return _euler;
 	}
@@ -145,9 +156,11 @@ private:
 	bool load_text(std::string_view source, std::string_view data);
 
 	mrb_state *_state = nullptr;
+	mrb_value _self_value = mrb_nil_value();
 	util::Config _config;
 	util::Reference<util::Logger> _log;
-	util::Reference<util::Storage> _storage;
+	util::Reference<util::Storage> _user_storage;
+	util::Reference<util::Storage> _title_storage;
 	util::Reference<vulkan::Renderer> _renderer;
 	util::Reference<graphics::Window> _window;
 	std::unordered_set<std::string> _loaded_modules;
@@ -166,6 +179,8 @@ make_state(int argc, char **argv)
 	const auto config = util::Config::parse_args(argc, argv);
 	return make_state(config);
 }
+
+util::Reference<State> read_state(mrb_state *mrb);
 
 } /* namespace euler::game */
 
