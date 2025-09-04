@@ -16,12 +16,12 @@ static constexpr unsigned long long DEFAULT_THREAD_COUNT
 using Severity = euler::util::Logger::Severity;
 using SeverityMap = std::unordered_map<std::string_view, Severity>;
 static const SeverityMap LOG_LEVELS = {
-	{ "trace", Severity::Trace },
 	{ "debug", Severity::Debug },
 	{ "info", Severity::Info },
 	{ "warn", Severity::Warn },
 	{ "error", Severity::Error },
-	{ "critical", Severity::Critical },
+	{ "fatal", Severity::Fatal },
+	{ "unknnown", Severity::Unknown },
 };
 
 [[noreturn]] static void
@@ -66,7 +66,7 @@ Notes:
 }
 
 static void
-parse_config_file(euler::util::Config &, std::string_view )
+parse_config_file(euler::util::Config &, std::string_view)
 {
 }
 
@@ -199,7 +199,7 @@ euler::util::Config::parse_args(int argc, char **argv)
 		}
 	}
 	out.log_level
-	    = std::clamp(out.log_level, Severity::Trace, Severity::Critical);
+	    = std::clamp(out.log_level, Severity::Debug, Severity::Fatal);
 	if (argc - options.optind > 1) {
 		std::cerr << "Only one entry file can be specified"
 			  << std::endl;

@@ -11,23 +11,32 @@ using namespace euler::util;
 using namespace euler::game;
 using Modules = euler::game::State::Modules;
 
+extern const mrb_data_type euler::game::LOGGER_TYPE
+    = MAKE_REFERENCE_TYPE(euler::util::Logger);
+extern const mrb_data_type euler::game::LOGGER_SINK_TYPE
+    = MAKE_DATA_TYPE(euler::util::Logger::Sink);
+extern const mrb_data_type euler::game::STORAGE_TYPE
+    = MAKE_REFERENCE_TYPE(euler::util::Storage);
+extern const mrb_data_type euler::game::CONFIG_TYPE
+    = MAKE_DATA_TYPE(euler::util::Config);
+extern const mrb_data_type euler::game::VERSION_TYPE
+    = MAKE_DATA_TYPE(euler::util::Version);
+
 /* TODO: Config and Version classes are both non-object structs, need to be
  *       handled differently. */
-
 
 static mrb_value
 logger_severity(mrb_state *mrb, const mrb_value self_value)
 {
 	switch (const auto self = unwrap<Logger>(mrb, self_value, &LOGGER_TYPE);
 	    self->severity()) {
-	case Logger::Severity::Trace: return mrb_symbol_value(MRB_SYM(trace));
 	case Logger::Severity::Debug: return mrb_symbol_value(MRB_SYM(debug));
 	case Logger::Severity::Info: return mrb_symbol_value(MRB_SYM(info));
 	case Logger::Severity::Warn: return mrb_symbol_value(MRB_SYM(warn));
 	case Logger::Severity::Error: return mrb_symbol_value(MRB_SYM(error));
-	case Logger::Severity::Critical:
-		return mrb_symbol_value(MRB_SYM(critical));
-	case Logger::Severity::Off: return mrb_symbol_value(MRB_SYM(off));
+	case Logger::Severity::Fatal:
+		return mrb_symbol_value(MRB_SYM(fatal));
+	case Logger::Severity::Unknown: return mrb_symbol_value(MRB_SYM(unknown));
 	default: mrb_raise(mrb, E_ARGUMENT_ERROR, "Unexpected logger level");
 	}
 }
@@ -37,15 +46,12 @@ mrb_value_to_severity(mrb_state *mrb, mrb_value value)
 {
 	if (mrb_symbol_p(value)) {
 		switch (mrb_symbol(value)) {
-		case MRB_SYM(trace): return Logger::Severity::Trace;
-		case MRB_SYM(verbose): return Logger::Severity::Trace;
 		case MRB_SYM(debug): return Logger::Severity::Debug;
 		case MRB_SYM(info): return Logger::Severity::Info;
 		case MRB_SYM(warn): return Logger::Severity::Warn;
 		case MRB_SYM(error): return Logger::Severity::Error;
-		case MRB_SYM(critical):
-		case MRB_SYM(fatal): return Logger::Severity::Critical;
-		case MRB_SYM(off): return Logger::Severity::Off;
+		case MRB_SYM(fatal): return Logger::Severity::Fatal;
+		case MRB_SYM(unknown): return Logger::Severity::Unknown;
 		default: break;
 		}
 	} else if (mrb_integer_p(value)) {
@@ -55,15 +61,11 @@ mrb_value_to_severity(mrb_state *mrb, mrb_value value)
 		using SeverityMap
 		    = std::unordered_map<std::string_view, Logger::Severity>;
 		static const SeverityMap STR_TO_SEVERITY = {
-			{ "trace", Logger::Severity::Trace },
-			{ "verbose", Logger::Severity::Trace },
 			{ "debug", Logger::Severity::Debug },
 			{ "info", Logger::Severity::Info },
 			{ "warn", Logger::Severity::Warn },
 			{ "error", Logger::Severity::Error },
-			{ "critical", Logger::Severity::Critical },
-			{ "fatal", Logger::Severity::Critical },
-			{ "off", Logger::Severity::Off },
+			{ "fatal", Logger::Severity::Fatal },
 			{ "unknown", Logger::Severity::Unknown },
 		};
 		const auto str = mrb_str_to_cstr(mrb, value);
@@ -147,33 +149,23 @@ init_logger(mrb_state *mrb, Modules &mod)
 	mod.util.logger.klass = mrb_define_class_under(mrb, mod.util.module,
 	    "Logger", mrb->object_class);
 	const auto log = mod.util.logger.klass;
-	mrb_define_class_method(mrb, log, "severity", logger_severity, 0);
-	mrb_define_class_method(mrb, log, "severity=", logger_set_severity,
+	mrb_define_method(mrb, log, "severity", logger_severity, 0);
+	mrb_define_method(mrb, log, "severity=", logger_set_severity,
 	    MRB_ARGS_REQ(1));
-	mrb_define_class_method(mrb, log, "progname", logger_progname, 0);
-	mrb_define_class_method(mrb, log, "log", logger_log, MRB_ARGS_REQ(2));
-	mrb_define_class_method(mrb, log, "trace",
-	    logger_log_with_severity<Logger::Severity::Trace>, MRB_ARGS_REQ(1));
-	mrb_define_class_method(mrb, log, "verbose",
-	    logger_log_with_severity<Logger::Severity::Verbose>,
-	    MRB_ARGS_REQ(1));
-	mrb_define_class_method(mrb, log, "debug",
+	mrb_define_method(mrb, log, "progname", logger_progname, 0);
+	mrb_define_method(mrb, log, "log", logger_log, MRB_ARGS_REQ(2));
+	mrb_define_method(mrb, log, "debug",
 	    logger_log_with_severity<Logger::Severity::Debug>, MRB_ARGS_REQ(1));
-	mrb_define_class_method(mrb, log, "info",
+	mrb_define_method(mrb, log, "info",
 	    logger_log_with_severity<Logger::Severity::Info>, MRB_ARGS_REQ(1));
-	mrb_define_class_method(mrb, log, "warn",
+	mrb_define_method(mrb, log, "warn",
 	    logger_log_with_severity<Logger::Severity::Warn>, MRB_ARGS_REQ(1));
-	mrb_define_class_method(mrb, log, "error",
+	mrb_define_method(mrb, log, "error",
 	    logger_log_with_severity<Logger::Severity::Error>, MRB_ARGS_REQ(1));
-	mrb_define_class_method(mrb, log, "critical",
-	    logger_log_with_severity<Logger::Severity::Critical>,
-	    MRB_ARGS_REQ(1));
-	mrb_define_class_method(mrb, log, "fatal",
+	mrb_define_method(mrb, log, "fatal",
 	    logger_log_with_severity<Logger::Severity::Fatal>, MRB_ARGS_REQ(1));
-	mrb_define_class_method(mrb, log, "off",
-	    logger_log_with_severity<Logger::Severity::Off>, MRB_ARGS_REQ(1));
-	mrb_define_class_method(mrb, log, "unknown",
-	    logger_log_with_severity<Logger::Severity::Off>, MRB_ARGS_REQ(1));
+	mrb_define_method(mrb, log, "unknown",
+	    logger_log_with_severity<Logger::Severity::Unknown>, MRB_ARGS_REQ(1));
 	init_logger_sink(mrb, mod);
 }
 
@@ -250,7 +242,8 @@ init_storage(mrb_state *mrb, Modules &mod)
 	mod.util.storage = mrb_define_class_under(mrb, mod.util.module,
 	    "Storage", mrb->object_class);
 	const auto storage = mod.util.storage;
-	mrb_define_method(mrb, storage, "ready?", storage_ready, MRB_ARGS_NONE());
+	mrb_define_method(mrb, storage, "ready?", storage_ready,
+	    MRB_ARGS_NONE());
 	mrb_define_method(mrb, storage, "file_size", storage_file_size,
 	    MRB_ARGS_REQ(1));
 	mrb_define_method(mrb, storage, "read_file", storage_read_file,

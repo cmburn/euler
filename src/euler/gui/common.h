@@ -26,6 +26,7 @@ enum class Symbol {
 };
 
 
+
 } /* namespace euler::gui */
 
 

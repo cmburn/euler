@@ -10,36 +10,34 @@
 #include <thread>
 #include <unordered_set>
 
+#include "euler/game/system.h"
 #include "euler/graphics/window.h"
 #include "euler/util/config.h"
 #include "euler/util/logger.h"
 #include "euler/util/state.h"
 #include "euler/util/storage.h"
-#include "euler/util/version.h"
 #include "euler/vulkan/renderer.h"
 
 namespace euler::game {
 static constexpr auto DEFAULT_THREAD_COUNT = util::DEFAULT_THREAD_COUNT;
 class State final : public util::State {
 public:
-	// struct Config {
-	// 	std::string entry_file;
-	// 	/* argv[0] */
-	// 	std::string progname;
-	// 	std::string name;
-	// 	util::Version version = util::Version(0, 1, 0);
-	// 	util::Logger::Severity log_level = util::Logger::Severity::Info;
-	// 	std::vector<std::filesystem::path> load_path;
-	// 	// unsigned long long num_threads = DEFAULT_THREAD_COUNT;
-	// 	static Config parse_args(int argc, char **argv);
-	// };
+	struct Config {
+		std::string entry_file;
+		/* argv[0] */
+		std::string progname;
+		std::string name;
+		util::Version version = util::Version(0, 1, 0);
+		util::Logger::Severity log_level = util::Logger::Severity::Info;
+		std::vector<std::filesystem::path> load_path;
+		static Config parse_args(int argc, char **argv);
+	};
 
 	/* If initialization fails, we log the error and return false. */
 	bool initialize();
 	/* Main game loop of engine. Must be called on same thread as
 	 * initialize(). */
 	bool loop(int &exit_code);
-
 	bool require(const char *path);
 
 	~State() override = default;
@@ -49,11 +47,13 @@ public:
 	{
 		return _log;
 	}
+
 	[[nodiscard]] util::Reference<util::Storage>
 	user_storage() const override
 	{
 		return _user_storage;
 	}
+
 	[[nodiscard]] util::Reference<util::Storage>
 	title_storage() const override
 	{
@@ -61,7 +61,7 @@ public:
 	}
 
 	static util::Reference<State>
-	get(mrb_state *mrb)
+	get(const mrb_state *mrb)
 	{
 		return util::unsafe_cast<util::WeakReference<State>>(mrb->ud)
 		    .strengthen();
@@ -84,6 +84,43 @@ public:
 		struct {
 			RClass *module = nullptr;
 			RClass *state = nullptr;
+			RClass *event = nullptr;
+			RClass *display_event = nullptr;
+			RClass *window_event = nullptr;
+			RClass *keyboard_device_event = nullptr;
+			RClass *keyboard_event = nullptr;
+			RClass *text_editing_event = nullptr;
+			RClass *text_editing_candidates_event = nullptr;
+			RClass *text_input_event = nullptr;
+			RClass *mouse_device_event = nullptr;
+			RClass *mouse_motion_event = nullptr;
+			RClass *mouse_button_event = nullptr;
+			RClass *mouse_wheel_event = nullptr;
+			RClass *joy_device_event = nullptr;
+			RClass *joy_axis_event = nullptr;
+			RClass *joy_ball_event = nullptr;
+			RClass *joy_hat_event = nullptr;
+			RClass *joy_button_event = nullptr;
+			RClass *joy_battery_event = nullptr;
+			RClass *gamepad_device_event = nullptr;
+			RClass *gamepad_axis_event = nullptr;
+			RClass *gamepad_button_event = nullptr;
+			RClass *gamepad_touchpad_event = nullptr;
+			RClass *gamepad_sensor_event = nullptr;
+			RClass *audio_device_event = nullptr;
+			RClass *camera_device_event = nullptr;
+			RClass *sensor_event = nullptr;
+			RClass *quit_event = nullptr;
+			RClass *user_event = nullptr;
+			RClass *touch_finger_event = nullptr;
+			RClass *pen_proximity_event = nullptr;
+			RClass *pen_touch_event = nullptr;
+			RClass *pen_motion_event = nullptr;
+			RClass *pen_button_event = nullptr;
+			RClass *pen_axis_event = nullptr;
+			RClass *render_event = nullptr;
+			RClass *drop_event = nullptr;
+			RClass *clipboard_event = nullptr;
 		} game;
 		struct {
 			RClass *module = nullptr;
@@ -137,27 +174,45 @@ public:
 		return _euler;
 	}
 
+	mrb_value gv_state();
+
 private:
 	friend util::Reference<State> make_state(const util::Config &config);
 	friend util::Reference<State> make_state(int argc, char **argv);
 
 	State(const util::Config &);
 
-	std::optional<std::string_view> exception_string();
+	bool do_loop(int &exit_code);
+	bool verify_gv_state();
+	bool app_update(float dt);
+	bool app_input(const SDL_Event &event);
+	bool app_draw();
+	bool app_load();
+	bool app_quit();
 
-	bool init_core();
+	std::optional<std::string_view> exception_string() const;
 
 	/* standard init independent of any user content */
 	bool load_core();
 	bool load_entry(std::string_view path);
-	bool handle_event(const SDL_Event &e);
-	bool load_entry_file(std::string_view path);
 
 	bool load_text(std::string_view source, std::string_view data);
 
 	mrb_state *_state = nullptr;
 	mrb_value _self_value = mrb_nil_value();
+	int64_t _last_tick = -1;
+	int64_t _tick = -1;
+	int_fast16_t _fps_counter = 0;
+	int16_t _fps = 0;
+	struct {
+		bool input = false;
+		bool update = false;
+		bool load = false;
+		bool draw = false;
+		bool quit = false;
+	} _methods;
 	util::Config _config;
+	util::Reference<System> _system;
 	util::Reference<util::Logger> _log;
 	util::Reference<util::Storage> _user_storage;
 	util::Reference<util::Storage> _title_storage;
@@ -180,7 +235,7 @@ make_state(int argc, char **argv)
 	return make_state(config);
 }
 
-util::Reference<State> read_state(mrb_state *mrb);
+util::Reference<State> read_state(const mrb_state *mrb);
 
 } /* namespace euler::game */
 

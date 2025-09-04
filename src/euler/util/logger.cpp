@@ -21,13 +21,13 @@ static Level
 from_spdlog_level(const spdlog::level::level_enum level)
 {
 	switch (level) {
-	case spdlog::level::trace: return Level::Trace;
+	case spdlog::level::trace: [[fallthrough]];
 	case spdlog::level::debug: return Level::Debug;
 	case spdlog::level::info: return Level::Info;
 	case spdlog::level::warn: return Level::Warn;
 	case spdlog::level::err: return Level::Error;
-	case spdlog::level::critical: return Level::Critical;
-	case spdlog::level::off: return Level::Off;
+	case spdlog::level::critical: return Level::Fatal;
+	case spdlog::level::off: return Level::Unknown;
 	default: throw std::runtime_error("Unknown log level");
 	}
 }
@@ -36,13 +36,12 @@ static spdlog::level::level_enum
 to_spdlog_level(const Level level)
 {
 	switch (level) {
-	case Level::Trace: return spdlog::level::trace;
 	case Level::Debug: return spdlog::level::debug;
 	case Level::Info: return spdlog::level::info;
 	case Level::Warn: return spdlog::level::warn;
 	case Level::Error: return spdlog::level::err;
-	case Level::Critical: return spdlog::level::critical;
-	case Level::Off: return spdlog::level::off;
+	case Level::Fatal: return spdlog::level::critical;
+	case Level::Unknown: return spdlog::level::off;
 	default: throw std::runtime_error("Unknown log level");
 	}
 }
@@ -69,12 +68,11 @@ euler::util::Logger::Severity
 euler::util::Logger::coerce_severity(severity_enum_t level)
 {
 	switch (static_cast<Severity>(level)) {
-	case Severity::Trace: return Severity::Trace;
 	case Severity::Debug: return Severity::Debug;
 	case Severity::Info: return Severity::Info;
 	case Severity::Warn: return Severity::Warn;
 	case Severity::Error: return Severity::Error;
-	case Severity::Critical: return Severity::Critical;
+	case Severity::Fatal: return Severity::Fatal;
 	default: return Severity::Unknown;
 	}
 }

@@ -1,6 +1,8 @@
 add_library(euler_game STATIC
         ext.cpp
         ext.h
+        event.cpp
+        event.h
         game_ext.cpp
         game_ext.h
         graphics_ext.cpp
@@ -11,12 +13,12 @@ add_library(euler_game STATIC
         physics_ext.h
         state.cpp
         state.h
+        system.cpp
+        system.h
         util_ext.cpp
         util_ext.h
         vulkan_ext.cpp
         vulkan_ext.h
-        state.cpp
-        state.h
 )
 
 target_link_libraries(euler_game PUBLIC

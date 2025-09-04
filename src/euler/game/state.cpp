@@ -6,12 +6,13 @@
 #include <mutex>
 #include <semaphore>
 
-#include <mruby/proc.h>
-
+#include <SDL3/SDL_events.h>
 #include <mruby/compile.h>
 #include <mruby/presym.h>
+#include <mruby/proc.h>
 #include <mruby/string.h>
 #include <mruby/throw.h>
+#include <mruby/variable.h>
 
 #include "euler/game/game_ext.h"
 #include "euler/game/graphics_ext.h"
@@ -19,6 +20,7 @@
 #include "euler/game/physics_ext.h"
 #include "euler/game/util_ext.h"
 #include "euler/game/vulkan_ext.h"
+#include "event.h"
 
 #include "euler/util/storage.h"
 #include "euler/util/thread.h"
@@ -33,18 +35,17 @@ static std::thread::id main_thread_id;
 //     | SDL_INIT_GAMEPAD			   //
 //     ;
 
+/* ReSharper disable once CppDFAConstantFunctionResult */
 static constexpr int
 sdl_init_flags()
 {
-	int flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS;
+	int flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS
+	    | SDL_INIT_GAMEPAD;
 #ifdef EULER_USE_JOYSTICK
 	flags |= SDL_INIT_JOYSTICK;
 #endif
 #ifdef EULER_USE_HAPTIC
 	flags |= SDL_INIT_HAPTIC;
-#endif
-#ifdef EULER_USE_GAMEPAD
-	flags |= SDL_INIT_GAMEPAD;
 #endif
 #ifdef EULER_USE_SENSOR
 	flags |= SDL_INIT_SENSOR;
@@ -55,6 +56,12 @@ sdl_init_flags()
 	return flags;
 }
 
+mrb_value
+euler::game::State::gv_state()
+{
+	return mrb_gv_get(_state, MRB_GVSYM(state));
+}
+
 euler::game::State::State(const util::Config &config)
     : _config(config)
 {
@@ -62,11 +69,171 @@ euler::game::State::State(const util::Config &config)
 	    config.log_level);
 	_log->info("Creating state");
 	if (!state_count.try_acquire())
-		_log->critical("Multiple states are not yet supported");
+		_log->fatal("Multiple states are not yet supported");
+}
+
+bool
+euler::game::State::verify_gv_state()
+{
+	auto var = gv_state();
+	if (mrb_nil_p(var)) {
+		log()->error("Global variable '$state' is not defined");
+		return false;
+	}
+	if (!mrb_obj_is_kind_of(_state, var, _euler.game.state)) {
+		log()->error("Global variable '$state' does not inherit from "
+			     "Euler::Game::State");
+		return false;
+	}
+	// There's two required methods: input and update
+	// There are also three optional methods: load, draw, quit
+#define ASSERT_EXISTS(NAME)                                                    \
+	do {                                                                   \
+		if (!mrb_respond_to(_state, var, MRB_SYM(NAME))) {             \
+			log()->error(                                          \
+			    "Global variable '$state' does not implement "     \
+			    "the '" #NAME "' method");                         \
+			return false;                                          \
+		}                                                              \
+		_methods.NAME = true;                                          \
+	} while (0)
+#define CHECK_EXISTS(NAME)                                                     \
+	do {                                                                   \
+		if (mrb_respond_to(_state, var, MRB_SYM(NAME))) {              \
+			_methods.NAME                                          \
+			    = mrb_respond_to(_state, var, MRB_SYM(NAME));      \
+			log()->info(                                           \
+			    "Found optional method '" #NAME "' for $state");   \
+		} else {                                                       \
+			log()->info("No '" #NAME "' method found for $state"); \
+		}                                                              \
+	} while (0)
+	ASSERT_EXISTS(input);
+	ASSERT_EXISTS(update);
+	CHECK_EXISTS(load);
+	CHECK_EXISTS(draw);
+	CHECK_EXISTS(quit);
+#undef ASSERT_EXISTS
+#undef CHECK_EXISTS
+	return true;
+}
+
+// ReSharper disable once CppMemberFunctionMayBeConst
+bool
+euler::game::State::app_update(const float dt)
+{
+	assert(_methods.update);
+	const auto arg = mrb_float_value(_state, dt);
+	mrb_funcall_id(_state, _self_value, MRB_SYM(update), 1, arg);
+	if (_state->exc != nullptr) {
+		_log->error("Exception in update: {}",
+		    exception_string().value());
+		_state->exc = nullptr;
+		return false;
+	}
+	return true;
+}
+
+bool
+euler::game::State::app_input(const SDL_Event &event)
+{
+	try {
+		assert(_methods.input);
+		const auto arg
+		    = sdl_event_to_mrb(util::Reference(this), event);
+		mrb_funcall_id(_state, _self_value, MRB_SYM(input), 1, arg);
+		if (_state->exc != nullptr) {
+			_log->error("Exception in input: {}",
+			    exception_string().value());
+			_state->exc = nullptr;
+			return false;
+		}
+		return true;
+	} catch (const std::exception &e) {
+		_log->error("Unhandled exception in input: {}", e.what());
+		return false;
+	} catch (mrb_jmpbuf *e) {
+		if (e != (_state->jmp)) throw e;
+		_log->error("Unhandled mruby exception in input: {}",
+		    exception_string().value());
+		return false;
+	}
+}
+
+bool
+euler::game::State::app_draw()
+{
+	if (!_methods.draw) return true;
+	try {
+		mrb_funcall_id(_state, _self_value, MRB_SYM(draw), 0);
+		if (_state->exc != nullptr) {
+			_log->error("Exception in draw: {}",
+			    exception_string().value());
+			_state->exc = nullptr;
+			return false;
+		}
+	} catch (const std::exception &e) {
+		_log->error("Unhandled exception in draw: {}", e.what());
+		return false;
+	} catch (mrb_jmpbuf *e) {
+		if (e != (_state->jmp)) throw e;
+		_log->error("Unhandled mruby exception in draw: {}",
+		    exception_string().value());
+		return false;
+	}
+	return true;
+}
+
+bool
+euler::game::State::app_load()
+{
+	if (!_methods.load) return true;
+	try {
+		mrb_funcall_id(_state, _self_value, MRB_SYM(load), 0);
+		if (_state->exc != nullptr) {
+			_log->error("Exception in load: {}",
+			    exception_string().value());
+			_state->exc = nullptr;
+			return false;
+		}
+	} catch (const std::exception &e) {
+		_log->error("Unhandled exception in load: {}", e.what());
+		return false;
+	} catch (mrb_jmpbuf *e) {
+		if (e != (_state->jmp)) throw e;
+		_log->error("Unhandled mruby exception in load: {}",
+		    exception_string().value());
+		return false;
+	}
+	return true;
+}
+
+bool
+euler::game::State::app_quit()
+{
+	if (!_methods.quit) return true;
+	try {
+		mrb_funcall_id(_state, _self_value, MRB_SYM(quit), 0);
+		if (_state->exc != nullptr) {
+			_log->error("Exception in quit: {}",
+			    exception_string().value());
+			_state->exc = nullptr;
+			return false;
+		}
+	} catch (const std::exception &e) {
+		_log->error("Unhandled exception in quit: {}", e.what());
+		return false;
+	} catch (mrb_jmpbuf *e) {
+		if (e != (_state->jmp)) throw e;
+		_log->error("Unhandled mruby exception in quit: {}",
+		    exception_string().value());
+		return false;
+	}
+	return true;
 }
 
 std::optional<std::string_view>
-euler::game::State::exception_string()
+euler::game::State::exception_string() const
 {
 	if (_state->exc == nullptr) return std::nullopt;
 	auto str = mrb_obj_value(_state->exc);
@@ -98,7 +265,8 @@ euler::game::State::load_core()
 		log()->info("Global initialization complete");
 	});
 	log()->info("Creating window");
-	_window = util::make_reference<graphics::Window>(_config.progname);
+	_window
+	    = util::make_reference<graphics::Window>(_log, _config.progname);
 	log()->info("Initializing interpreter");
 	_state = mrb_open();
 	if (_state == nullptr) {
@@ -120,8 +288,8 @@ euler::game::State::load_core()
 	auto data = Data_Wrap_Struct(_state, _euler.game.state, &STATE_TYPE,
 	    self.wrap());
 	_self_value = mrb_obj_value(data);
+	mrb_gc_protect(_state, _self_value);
 	_log->debug("Core modules initialized");
-
 	return true;
 }
 
@@ -146,162 +314,6 @@ euler::game::State::load_entry(std::string_view path)
 	return true;
 }
 
-[[maybe_unused]] static mrb_sym
-sdl_event_sym([[maybe_unused]] mrb_state *mrb, SDL_Event &e)
-{
-	switch (static_cast<SDL_EventType>(e.type)) {
-	case SDL_EVENT_QUIT: return MRB_SYM(quit);
-	case SDL_EVENT_TERMINATING: return MRB_SYM(terminating);
-	case SDL_EVENT_LOW_MEMORY: return MRB_SYM(low_memory);
-	case SDL_EVENT_WILL_ENTER_BACKGROUND:
-		return MRB_SYM(will_enter_background);
-	case SDL_EVENT_DID_ENTER_BACKGROUND:
-		return MRB_SYM(did_enter_background);
-	case SDL_EVENT_WILL_ENTER_FOREGROUND:
-		return MRB_SYM(will_enter_foreground);
-	case SDL_EVENT_DID_ENTER_FOREGROUND:
-		return MRB_SYM(did_enter_foreground);
-	case SDL_EVENT_LOCALE_CHANGED: return MRB_SYM(locale_changed);
-	case SDL_EVENT_SYSTEM_THEME_CHANGED:
-		return MRB_SYM(system_theme_changed);
-	case SDL_EVENT_DISPLAY_ORIENTATION: return MRB_SYM(display_orientation);
-	case SDL_EVENT_DISPLAY_ADDED: return MRB_SYM(display_added);
-	case SDL_EVENT_DISPLAY_REMOVED: return MRB_SYM(display_removed);
-	case SDL_EVENT_DISPLAY_MOVED: return MRB_SYM(display_moved);
-	case SDL_EVENT_DISPLAY_DESKTOP_MODE_CHANGED:
-		return MRB_SYM(display_desktop_mode_changed);
-	case SDL_EVENT_DISPLAY_CURRENT_MODE_CHANGED:
-		return MRB_SYM(display_current_mode_changed);
-	case SDL_EVENT_DISPLAY_CONTENT_SCALE_CHANGED:
-		return MRB_SYM(display_content_scale_changed);
-	case SDL_EVENT_WINDOW_SHOWN: return MRB_SYM(window_shown);
-	case SDL_EVENT_WINDOW_HIDDEN: return MRB_SYM(window_hidden);
-	case SDL_EVENT_WINDOW_EXPOSED: return MRB_SYM(window_exposed);
-	case SDL_EVENT_WINDOW_MOVED: return MRB_SYM(window_moved);
-	case SDL_EVENT_WINDOW_RESIZED: return MRB_SYM(window_resized);
-	case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
-		return MRB_SYM(window_pixel_size_changed);
-	case SDL_EVENT_WINDOW_METAL_VIEW_RESIZED:
-		return MRB_SYM(window_metal_view_resized);
-	case SDL_EVENT_WINDOW_MINIMIZED: return MRB_SYM(window_minimized);
-	case SDL_EVENT_WINDOW_MAXIMIZED: return MRB_SYM(window_maximized);
-	case SDL_EVENT_WINDOW_RESTORED: return MRB_SYM(window_restored);
-	case SDL_EVENT_WINDOW_MOUSE_ENTER: return MRB_SYM(window_mouse_enter);
-	case SDL_EVENT_WINDOW_MOUSE_LEAVE: return MRB_SYM(window_mouse_leave);
-	case SDL_EVENT_WINDOW_FOCUS_GAINED: return MRB_SYM(window_focus_gained);
-	case SDL_EVENT_WINDOW_FOCUS_LOST: return MRB_SYM(window_focus_lost);
-	case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
-		return MRB_SYM(window_close_requested);
-	case SDL_EVENT_WINDOW_HIT_TEST: return MRB_SYM(window_hit_test);
-	case SDL_EVENT_WINDOW_ICCPROF_CHANGED:
-		return MRB_SYM(window_iccprof_changed);
-	case SDL_EVENT_WINDOW_DISPLAY_CHANGED:
-		return MRB_SYM(window_display_changed);
-	case SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED:
-		return MRB_SYM(window_display_scale_changed);
-	case SDL_EVENT_WINDOW_SAFE_AREA_CHANGED:
-		return MRB_SYM(window_safe_area_changed);
-	case SDL_EVENT_WINDOW_OCCLUDED: return MRB_SYM(window_occluded);
-	case SDL_EVENT_WINDOW_ENTER_FULLSCREEN:
-		return MRB_SYM(window_enter_fullscreen);
-	case SDL_EVENT_WINDOW_LEAVE_FULLSCREEN:
-		return MRB_SYM(window_leave_fullscreen);
-	case SDL_EVENT_WINDOW_DESTROYED: return MRB_SYM(window_destroyed);
-	case SDL_EVENT_WINDOW_HDR_STATE_CHANGED:
-		return MRB_SYM(window_hdr_state_changed);
-	case SDL_EVENT_KEY_DOWN: return MRB_SYM(key_down);
-	case SDL_EVENT_KEY_UP: return MRB_SYM(key_up);
-	case SDL_EVENT_TEXT_EDITING: return MRB_SYM(text_editing);
-	case SDL_EVENT_TEXT_INPUT: return MRB_SYM(text_input);
-	case SDL_EVENT_KEYMAP_CHANGED: return MRB_SYM(keymap_changed);
-	case SDL_EVENT_KEYBOARD_ADDED: return MRB_SYM(keyboard_added);
-	case SDL_EVENT_KEYBOARD_REMOVED: return MRB_SYM(keyboard_removed);
-	case SDL_EVENT_TEXT_EDITING_CANDIDATES:
-		return MRB_SYM(text_editing_candidates);
-	case SDL_EVENT_MOUSE_MOTION: return MRB_SYM(mouse_motion);
-	case SDL_EVENT_MOUSE_BUTTON_DOWN: return MRB_SYM(mouse_button_down);
-	case SDL_EVENT_MOUSE_BUTTON_UP: return MRB_SYM(mouse_button_up);
-	case SDL_EVENT_MOUSE_WHEEL: return MRB_SYM(mouse_wheel);
-	case SDL_EVENT_MOUSE_ADDED: return MRB_SYM(mouse_added);
-	case SDL_EVENT_MOUSE_REMOVED: return MRB_SYM(mouse_removed);
-	case SDL_EVENT_JOYSTICK_AXIS_MOTION:
-		return MRB_SYM(joystick_axis_motion);
-	case SDL_EVENT_JOYSTICK_BALL_MOTION:
-		return MRB_SYM(joystick_ball_motion);
-	case SDL_EVENT_JOYSTICK_HAT_MOTION: return MRB_SYM(joystick_hat_motion);
-	case SDL_EVENT_JOYSTICK_BUTTON_DOWN:
-		return MRB_SYM(joystick_button_down);
-	case SDL_EVENT_JOYSTICK_BUTTON_UP: return MRB_SYM(joystick_button_up);
-	case SDL_EVENT_JOYSTICK_ADDED: return MRB_SYM(joystick_added);
-	case SDL_EVENT_JOYSTICK_REMOVED: return MRB_SYM(joystick_removed);
-	case SDL_EVENT_JOYSTICK_BATTERY_UPDATED:
-		return MRB_SYM(joystick_battery_updated);
-	case SDL_EVENT_JOYSTICK_UPDATE_COMPLETE:
-		return MRB_SYM(joystick_update_complete);
-	case SDL_EVENT_GAMEPAD_AXIS_MOTION: return MRB_SYM(gamepad_axis_motion);
-	case SDL_EVENT_GAMEPAD_BUTTON_DOWN: return MRB_SYM(gamepad_button_down);
-	case SDL_EVENT_GAMEPAD_BUTTON_UP: return MRB_SYM(gamepad_button_up);
-	case SDL_EVENT_GAMEPAD_ADDED: return MRB_SYM(gamepad_added);
-	case SDL_EVENT_GAMEPAD_REMOVED: return MRB_SYM(gamepad_removed);
-	case SDL_EVENT_GAMEPAD_REMAPPED: return MRB_SYM(gamepad_remapped);
-	case SDL_EVENT_GAMEPAD_TOUCHPAD_DOWN:
-		return MRB_SYM(gamepad_touchpad_down);
-	case SDL_EVENT_GAMEPAD_TOUCHPAD_MOTION:
-		return MRB_SYM(gamepad_touchpad_motion);
-	case SDL_EVENT_GAMEPAD_TOUCHPAD_UP: return MRB_SYM(gamepad_touchpad_up);
-	case SDL_EVENT_GAMEPAD_SENSOR_UPDATE:
-		return MRB_SYM(gamepad_sensor_update);
-	case SDL_EVENT_GAMEPAD_UPDATE_COMPLETE:
-		return MRB_SYM(gamepad_update_complete);
-	case SDL_EVENT_GAMEPAD_STEAM_HANDLE_UPDATED:
-		return MRB_SYM(gamepad_steam_handle_updated);
-	case SDL_EVENT_FINGER_DOWN: return MRB_SYM(finger_down);
-	case SDL_EVENT_FINGER_UP: return MRB_SYM(finger_up);
-	case SDL_EVENT_FINGER_MOTION: return MRB_SYM(finger_motion);
-	case SDL_EVENT_FINGER_CANCELED: return MRB_SYM(finger_canceled);
-	case SDL_EVENT_CLIPBOARD_UPDATE: return MRB_SYM(clipboard_update);
-	case SDL_EVENT_DROP_FILE: return MRB_SYM(drop_file);
-	case SDL_EVENT_DROP_TEXT: return MRB_SYM(drop_text);
-	case SDL_EVENT_DROP_BEGIN: return MRB_SYM(drop_begin);
-	case SDL_EVENT_DROP_COMPLETE: return MRB_SYM(drop_complete);
-	case SDL_EVENT_DROP_POSITION: return MRB_SYM(drop_position);
-	case SDL_EVENT_AUDIO_DEVICE_ADDED: return MRB_SYM(audio_device_added);
-	case SDL_EVENT_AUDIO_DEVICE_REMOVED:
-		return MRB_SYM(audio_device_removed);
-	case SDL_EVENT_AUDIO_DEVICE_FORMAT_CHANGED:
-		return MRB_SYM(audio_device_format_changed);
-	case SDL_EVENT_SENSOR_UPDATE: return MRB_SYM(sensor_update);
-	case SDL_EVENT_PEN_PROXIMITY_IN: return MRB_SYM(pen_proximity_in);
-	case SDL_EVENT_PEN_PROXIMITY_OUT: return MRB_SYM(pen_proximity_out);
-	case SDL_EVENT_PEN_DOWN: return MRB_SYM(pen_down);
-	case SDL_EVENT_PEN_UP: return MRB_SYM(pen_up);
-	case SDL_EVENT_PEN_BUTTON_DOWN: return MRB_SYM(pen_button_down);
-	case SDL_EVENT_PEN_BUTTON_UP: return MRB_SYM(pen_button_up);
-	case SDL_EVENT_PEN_MOTION: return MRB_SYM(pen_motion);
-	case SDL_EVENT_PEN_AXIS: return MRB_SYM(pen_axis);
-	case SDL_EVENT_CAMERA_DEVICE_ADDED: return MRB_SYM(camera_device_added);
-	case SDL_EVENT_CAMERA_DEVICE_REMOVED:
-		return MRB_SYM(camera_device_removed);
-	case SDL_EVENT_CAMERA_DEVICE_APPROVED:
-		return MRB_SYM(camera_device_approved);
-	case SDL_EVENT_CAMERA_DEVICE_DENIED:
-		return MRB_SYM(camera_device_denied);
-	case SDL_EVENT_RENDER_TARGETS_RESET:
-		return MRB_SYM(render_targets_reset);
-	case SDL_EVENT_RENDER_DEVICE_RESET: return MRB_SYM(render_device_reset);
-	case SDL_EVENT_RENDER_DEVICE_LOST: return MRB_SYM(render_device_lost);
-	default: return 0;
-	}
-}
-
-// bool
-// euler::game::State::handle_event(const SDL_Event &e)
-// {
-// 	// log->error("Unknown SDL event type: {}", e.type);
-// 	[[maybe_unused]] auto guard = _window->input_guard();
-//
-// }
-
 bool
 euler::game::State::load_text(std::string_view source, std::string_view data)
 {
@@ -322,16 +334,16 @@ euler::game::State::load_text(std::string_view source, std::string_view data)
 		for (size_t i = 0; i < p->nerr; i++) {
 			const auto &[lineno, column, message]
 			    = p->error_buffer[i];
-			_log->critical("Error in {}: {} at line {}: {}", source,
+			_log->fatal("Error in {}: {} at line {}: {}", source,
 			    message, lineno, column);
 		}
 		mrb_ccontext_free(_state, ctx);
 		mrb_parser_free(p);
 		return false;
 	}
-	auto proc = mrb_generate_code(_state, p);
+	const auto proc = mrb_generate_code(_state, p);
 	if (proc == nullptr) {
-		_log->critical("Failed to generate code for {}", source);
+		_log->fatal("Failed to generate code for {}", source);
 		mrb_ccontext_free(_state, ctx);
 		mrb_parser_free(p);
 		return false;
@@ -340,11 +352,11 @@ euler::game::State::load_text(std::string_view source, std::string_view data)
 	try {
 		mrb_toplevel_run(_state, proc);
 	} catch (mrb_jmpbuf *e) {
-		if (e != (_state->jmp)) { throw e; }
+		if (e != (_state->jmp)) throw;
 		mrb_ccontext_free(_state, ctx);
 		mrb_parser_free(p);
 		assert(_state->exc != nullptr);
-		_log->critical("Exception while executing {}: {}", source,
+		_log->fatal("Exception while executing {}: {}", source,
 		    exception_string().value());
 		return false;
 	}
@@ -353,7 +365,7 @@ euler::game::State::load_text(std::string_view source, std::string_view data)
 	mrb_parser_free(p);
 
 	if (_state->exc) {
-		_log->critical("Failed to execute {}: {}", source,
+		_log->fatal("Failed to execute {}: {}", source,
 		    exception_string().value());
 		_state->exc = nullptr;
 		return false;
@@ -363,11 +375,10 @@ euler::game::State::load_text(std::string_view source, std::string_view data)
 }
 
 euler::util::Reference<euler::game::State>
-euler::game::read_state(mrb_state *mrb)
+euler::game::read_state(const mrb_state *mrb)
 {
-	const auto weak
-	    = util::unsafe_cast<util::WeakReference<State>>(mrb->ud);
-	return weak.strengthen();
+	return util::unsafe_cast<util::WeakReference<State>>(mrb->ud)
+	    .strengthen();
 }
 
 bool
@@ -376,32 +387,51 @@ euler::game::State::initialize()
 	log()->info("Initializing state with {} threads", _config.num_threads);
 	if (!load_core()) return false;
 	if (!load_entry(_config.entry_file)) return false;
+	if (!verify_gv_state()) return false;
+	if (!app_load()) return false;
+	_tick = SDL_GetTicks();
 	return true;
 }
-
 bool
 euler::game::State::loop(int &exit_code)
 {
+	try {
+		return do_loop(exit_code);
+	} catch (const std::exception &e) {
+		_log->error("Unhandled exception in loop: {}", e.what());
+		exit_code = EXIT_FAILURE;
+		return false;
+	} catch (mrb_jmpbuf *e) {
+		if (e != (_state->jmp)) throw e;
+		_log->error("Unhandled mruby exception in loop: {}",
+		    exception_string().value());
+		exit_code = EXIT_FAILURE;
+		return false;
+	}
+}
+
+bool
+euler::game::State::do_loop(int &exit_code)
+{
 	assert(util::is_main_thread());
+	const auto gc_idx = mrb_gc_arena_save(_state);
 	SDL_Event e;
-	// while (SDL_WaitEvent(&e)) {
-	// 	if (e.type == SDL_EVENT_QUIT) {
-	// 		_log->info("Received quit event, exiting loop");
-	// 		exit_code = 0;
-	// 		return false;
-	// 	}
-	// }
 	if (!SDL_WaitEvent(&e)) {
 		_log->error("Failed to wait for event: {}", SDL_GetError());
 		exit_code = EXIT_FAILURE;
 		return false;
 	}
-	_log->trace("Received event {}", e.type);
+	_log->debug("Received event {}", e.type);
 	if (e.type == SDL_EVENT_QUIT) {
 		_log->info("Received quit event, exiting loop");
 		exit_code = 0;
 		return false;
 	}
+	if (_methods.input && !app_input(e)) return false;
+	assert(_methods.update);
+	if (!app_update(_system->dt())) return false;
+	if (_methods.draw && !app_draw()) return false;
+	mrb_gc_arena_restore(_state, gc_idx);
 	return true;
 }
 

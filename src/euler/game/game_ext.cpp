@@ -6,27 +6,15 @@
 using namespace euler::game;
 using Modules = State::Modules;
 
-// static mrb_value
-// state_log(mrb_state *mrb, const mrb_value self_value)
-// {
-// 	const auto self = unwrap<State>(mrb, self_value, &STATE_TYPE);
-// 	const auto obj = Data_Wrap_Struct(mrb, mrb->object_class, &LOGGER_TYPE,
-// 	    self->log().wrap());
-// 	return mrb_obj_value(obj);
-// }
+extern const mrb_data_type euler::game::STATE_TYPE
+    = MAKE_REFERENCE_TYPE(euler::game::State);
 
-static constexpr auto state_log = [](mrb_state *mrb,
-				      const mrb_value self_value) {
-	const auto self = unwrap_data<State>(mrb, self_value, &STATE_TYPE);
-	auto ans = (self->log());
-	const auto obj = mrb_data_object_alloc(mrb, mrb->object_class,
-	    ans.wrap(), &LOGGER_TYPE);
-	return mrb_obj_value(obj);
-};
-static constexpr auto state_user_storage
-    = ATTR_READER(State, STATE_TYPE, STORAGE_TYPE, self->user_storage());
-static constexpr auto state_title_storage
-    = ATTR_READER(State, STATE_TYPE, STORAGE_TYPE, self->title_storage());
+static constexpr auto state_log = ATTR_READER(State, STATE_TYPE,
+    LOGGER_TYPE, mod.util.logger.klass, self->log());
+static constexpr auto state_user_storage = ATTR_READER(State, STATE_TYPE,
+    STORAGE_TYPE, mod.util.storage, self->user_storage());
+static constexpr auto state_title_storage = ATTR_READER(State, STATE_TYPE,
+    STORAGE_TYPE, mod.util.storage, self->title_storage());
 
 static mrb_value
 state_allocate(mrb_state *mrb, mrb_value)

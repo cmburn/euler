@@ -8,44 +8,63 @@
 #include <SDL3/SDL.h>
 #include <glm/glm.hpp>
 
+#include "euler/util/logger.h"
 #include "euler/util/object.h"
+#include "euler/vulkan/surface.h"
 
 namespace euler::graphics {
-class Window final : public util::Object {
-public:
-	static constexpr auto DEFAULT_FLAGS = SDL_WINDOW_VULKAN
-	    | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY;
-	static constexpr int DEFAULT_WIDTH = 1280;
-	static constexpr int DEFAULT_HEIGHT = 720;
-	Window(const std::string &title = "Euler Game",
-	    int width = DEFAULT_WIDTH, int height = DEFAULT_HEIGHT,
-	    SDL_WindowFlags flags = DEFAULT_FLAGS);
-	~Window() override;
-
-	glm::vec4 size() const;
-	const std::string &title() const { return _title; }
-	SDL_Window *window() { return _window; }
-	const SDL_Window *window() const { return _window; }
-	void process_event(const SDL_Event &e);
-
-private:
+class Window final : public vulkan::Surface {
 	struct InputGuard {
 		util::Reference<Window> window;
 		~InputGuard() { window->end_input(); }
 	};
 
 public:
-	InputGuard input_guard() {
+	static constexpr auto DEFAULT_FLAGS = SDL_WINDOW_VULKAN
+	    | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY;
+	static constexpr int DEFAULT_WIDTH = 1280;
+	static constexpr int DEFAULT_HEIGHT = 720;
+	Window(const util::Reference<util::Logger> &log,
+	    const std::string &title = "Euler Game", int width = DEFAULT_WIDTH,
+	    int height = DEFAULT_HEIGHT, SDL_WindowFlags flags = DEFAULT_FLAGS);
+	~Window() override;
+
+	size_t width() const override;
+	size_t height() const override;
+
+	const std::string &
+	title() const
+	{
+		return _title;
+	}
+
+	SDL_Window *
+	window() const override
+	{
+		return _window;
+	}
+
+	InputGuard
+	input_guard()
+	{
 		start_input();
 		return InputGuard { util::Reference<Window>(this) };
+	}
+
+	util::Reference<util::Logger>
+	log() const override
+	{
+		return _log;
 	}
 
 private:
 	friend struct InputGuard;
 	void start_input();
 	void end_input();
+
 	std::string _title;
 	SDL_Window *_window = nullptr;
+	util::Reference<util::Logger> _log;
 };
 } /* namespace Euler::Graphics */
 

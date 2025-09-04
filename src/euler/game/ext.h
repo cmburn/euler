@@ -55,13 +55,26 @@ unwrap_data(mrb_state *mrb, const mrb_value &value, const mrb_data_type *type)
 	return nullptr;
 }
 
-#define ATTR_READER(SELF_TYPE, SELF_DATA, OTHER_DATA, EXPR)                    \
+#define ATTR_READER(SELF_TYPE, SELF_DATA, OTHER_DATA, SUPER, EXPR)             \
 	[](mrb_state *mrb, const mrb_value self_value) {                       \
 		const auto self                                                \
 		    = unwrap_data<SELF_TYPE>(mrb, self_value, &SELF_DATA);     \
+		const auto state = State::get(mrb);                            \
+		const auto mod = state->module();                              \
 		auto ans = (EXPR);                                             \
+		const auto obj                                                 \
+		    = Data_Wrap_Struct(mrb, (SUPER), &OTHER_DATA, ans.wrap()); \
+		return mrb_obj_value(obj);                                     \
+	}
+
+#define ATTR_READER_DATA(SELF_TYPE, SELF_DATA, OTHER_TYPE, OTHER_DATA, EXPR)   \
+	[](mrb_state *mrb, const mrb_value self_value) {                       \
+		const auto self                                                \
+		    = unwrap_data<SELF_TYPE>(mrb, self_value, &SELF_DATA);     \
+		const auto ans = (EXPR);                                       \
+		if (ans == nullptr) return mrb_nil_value();                    \
 		const auto obj = Data_Wrap_Struct(mrb, mrb->object_class,      \
-		    &OTHER_DATA, ans.wrap());                                  \
+		    &OTHER_DATA, static_cast<OTHER_TYPE *>(ans));              \
 		return mrb_obj_value(obj);                                     \
 	}
 

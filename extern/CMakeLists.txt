@@ -10,6 +10,7 @@ add_subdirectory(physfs)
 add_subdirectory(nlohmann-json)
 add_subdirectory(VulkanMemoryAllocator)
 add_subdirectory(spdlog)
+add_subdirectory(libevent)
 
 target_sources(physfs-static PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/physfs/extras/physfssdl3.c

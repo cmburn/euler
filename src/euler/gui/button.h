@@ -15,6 +15,10 @@ public:
 	Button(std::string_view label, graphics::Color color,
 	    Symbol symbol);
 
+	graphics::Color color() const { return _color; }
+	const std::string &label() const { return _label; }
+	Symbol symbol() const { return _symbol; }
+
 private:
 	std::string _label;
 	graphics::Color _color;

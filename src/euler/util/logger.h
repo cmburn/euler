@@ -19,15 +19,11 @@ class Logger final : public Object {
 
 public:
 	enum class Severity {
-		Trace,
-		Verbose = Trace,
 		Debug,
 		Info,
 		Warn,
 		Error,
-		Critical,
-		Fatal = Critical,
-		Off,
+		Fatal,
 		Unknown,
 	};
 
@@ -103,13 +99,6 @@ public:
 
 	template <typename... Args>
 	void
-	trace(const std::format_string<Args...> &message, Args &&...args) const
-	{
-		log(Severity::Trace, message, std::forward<Args>(args)...);
-	}
-
-	template <typename... Args>
-	void
 	debug(const std::format_string<Args...> &message, Args &&...args) const
 	{
 		log(Severity::Debug, message, std::forward<Args>(args)...);
@@ -138,10 +127,10 @@ public:
 
 	template <typename... Args>
 	[[noreturn]] void
-	critical(const std::format_string<Args...> &message,
+	fatal(const std::format_string<Args...> &message,
 	    Args &&...args) const
 	{
-		log(Severity::Critical, message, std::forward<Args>(args)...);
+		log(Severity::Fatal, message, std::forward<Args>(args)...);
 		std::abort();
 	}
 

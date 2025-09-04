@@ -19,3 +19,6 @@
 [submodule "extern/nuklear"]
 	path = extern/nuklear
 	url = https://github.com/Immediate-Mode-UI/Nuklear
+[submodule "extern/libevent"]
+	path = extern/libevent
+	url = https://github.com/libevent/libevent

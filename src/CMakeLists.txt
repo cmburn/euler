@@ -5,11 +5,12 @@ add_compile_definitions(EULER_INTERNAL_BUILD=1)
 set(EULER_COMPILE_OPTIONS
         -Wall
         -Wextra
-        -Wpedantic
         -Werror
         # We need to disable -Wclass-memaccess because of how we handle wrapping C++
         # classes in mRuby.
         -Wno-class-memaccess
+        # -Wmissing-field-initializers pitches a fit with Vulkan structs
+        -Wno-missing-field-initializers
 )
 
 add_subdirectory(euler/game)

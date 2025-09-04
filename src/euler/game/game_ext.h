@@ -8,7 +8,7 @@
 
 namespace euler::game {
 
-static constexpr auto STATE_TYPE = MAKE_REFERENCE_TYPE(euler::game::State);
+extern const mrb_data_type STATE_TYPE;
 
 void init_game(util::Reference<State> state);
 
