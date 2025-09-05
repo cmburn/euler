@@ -9,6 +9,8 @@ add_library(euler_gui STATIC
         dropdown.h
         element.cpp
         element.h
+        image.cpp
+        image.h
         instance.cpp
         instance.h
         knob.cpp
@@ -27,6 +29,8 @@ add_library(euler_gui STATIC
         widget.h
         window.cpp
         window.h
+        text.cpp
+        text.h
 )
 
 add_library(nuklear STATIC

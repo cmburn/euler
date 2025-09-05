@@ -20,7 +20,7 @@ public:
 	{
 	}
 
-	constexpr Color(const uint32_t color)
+	constexpr Color(const uint32_t color = 0)
 	    : _red((color >> 24) & 0xFF)
 	    , _green((color >> 16) & 0xFF)
 	    , _blue((color >> 8) & 0xFF)
@@ -97,6 +97,17 @@ public:
 		_alpha = alpha;
 	}
 
+	[[nodiscard]] bool
+	operator==(const Color &other) const
+	{
+		return to_uint32() == other.to_uint32();
+	}
+
+	[[nodiscard]] bool
+	operator!=(const Color &other) const
+	{
+		return !(*this == other);
+	}
 
 private:
 	uint8_t _red;
@@ -110,7 +121,6 @@ static constexpr Color BLACK { 0, 0, 0, 255 };
 static constexpr Color RED { 255, 0, 0, 255 };
 static constexpr Color GREEN { 0, 255, 0, 255 };
 static constexpr Color BLUE { 0, 0, 255, 255 };
-
 
 } /* namespace euler::graphics */
 

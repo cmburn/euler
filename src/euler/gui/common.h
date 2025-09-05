@@ -25,6 +25,20 @@ enum class Symbol {
 	OutlinedRightTriangle,
 };
 
+struct Alignment {
+	enum class Horizontal : uint8_t {
+		Left,
+		Center,
+		Right
+	};
+	enum class Vertical : uint8_t {
+		Top,
+		Middle,
+		Bottom
+	};
+	Horizontal horizontal = Horizontal::Center;
+	Vertical vertical = Vertical::Middle;
+};
 
 
 } /* namespace euler::gui */
