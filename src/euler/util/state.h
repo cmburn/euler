@@ -3,13 +3,13 @@
 #ifndef EULER_MRUBY_STATE_H
 #define EULER_MRUBY_STATE_H
 
+#include <mruby.h>
+
 #include "euler/util/logger.h"
 #include "euler/util/object.h"
 
 namespace euler::util {
 class Storage;
-
-
 
 /* pure virtual class; the actual state is implemented in game::State */
 class State : public Object {
@@ -22,6 +22,7 @@ public:
 	[[nodiscard]] virtual Reference<Logger> log() const = 0;
 	[[nodiscard]] virtual Reference<Storage> user_storage() const = 0;
 	[[nodiscard]] virtual Reference<Storage> title_storage() const = 0;
+	[[nodiscard]] virtual mrb_state *mrb() const = 0;
 };
 } /* namespace Euler::MRuby */
 

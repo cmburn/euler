@@ -5,6 +5,8 @@ add_library(euler_graphics STATIC
         color.h
         font.cpp
         font.h
+        image.cpp
+        image.h
         polygon.cpp
         polygon.h
         text.cpp

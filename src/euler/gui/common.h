@@ -3,6 +3,8 @@
 #ifndef EULER_GUI_COMMON_H
 #define EULER_GUI_COMMON_H
 
+#include <cstdint>
+
 namespace euler::gui {
 
 enum class Symbol {
@@ -26,12 +28,12 @@ enum class Symbol {
 };
 
 struct Alignment {
-	enum class Horizontal : uint8_t {
+	enum class Horizontal : uint16_t {
 		Left,
 		Center,
 		Right
 	};
-	enum class Vertical : uint8_t {
+	enum class Vertical : uint16_t {
 		Top,
 		Middle,
 		Bottom
