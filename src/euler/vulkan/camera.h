@@ -3,6 +3,8 @@
 #ifndef EULER_VULKAN_CAMERA_H
 #define EULER_VULKAN_CAMERA_H
 
+#include <glm/fwd.hpp>
+
 #include "euler/util/object.h"
 
 namespace euler::vulkan {
@@ -46,6 +48,7 @@ public:
 	State state() const { return _state; }
 	void set_state(State state);
 	util::Reference<Renderer> renderer() const;
+	void update_ubo(glm::mat4 &);
 
 	Index index() const
 	{

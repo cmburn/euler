@@ -7,11 +7,13 @@
 #include <vector>
 
 #include <mruby.h>
+#include <mutex>
 #include <thread>
 #include <unordered_set>
 
 #include "euler/game/system.h"
 #include "euler/graphics/window.h"
+#include "euler/gui/gui.h"
 #include "euler/util/config.h"
 #include "euler/util/logger.h"
 #include "euler/util/state.h"
@@ -68,9 +70,9 @@ public:
 	}
 
 	mrb_state *
-	mrb() const
+	mrb() const override
 	{
-		return _state;
+		return _mrb;
 	}
 
 	mrb_value
@@ -175,6 +177,21 @@ public:
 	}
 
 	mrb_value gv_state();
+	[[nodiscard]] std::unique_lock<std::mutex>
+	lock_mrb() const override
+	{
+		return std::unique_lock(_mrb_mutex);
+	}
+
+	[[nodiscard]] std::optional<std::unique_lock<std::mutex>>
+	try_lock_mrb() const override
+	{
+		std::optional<std::lock_guard<std::mutex>> guard;
+		auto lk = std::unique_lock(_mrb_mutex, std::try_to_lock);
+		if (lk.owns_lock()) return lk;
+		return std::nullopt;
+	}
+
 
 private:
 	friend util::Reference<State> make_state(const util::Config &config);
@@ -182,7 +199,7 @@ private:
 
 	State(const util::Config &);
 
-	bool do_loop(int &exit_code);
+	bool update(int &exit_code);
 	bool verify_gv_state();
 	bool app_update(float dt);
 	bool app_input(const SDL_Event &event);
@@ -198,10 +215,12 @@ private:
 
 	bool load_text(std::string_view source, std::string_view data);
 
-	mrb_state *_state = nullptr;
+	[[nodiscard]] util::nthread_t available_threads() const override;
+	mrb_state *_mrb = nullptr;
+	mutable std::mutex _mrb_mutex;
 	mrb_value _self_value = mrb_nil_value();
-	int64_t _last_tick = -1;
-	int64_t _tick = -1;
+	uint64_t _last_tick = -1;
+	uint64_t _tick = -1;
 	int_fast16_t _fps_counter = 0;
 	int16_t _fps = 0;
 	struct {
@@ -218,6 +237,7 @@ private:
 	util::Reference<util::Storage> _title_storage;
 	util::Reference<vulkan::Renderer> _renderer;
 	util::Reference<graphics::Window> _window;
+	util::Reference<gui::Gui> _gui;
 	std::unordered_set<std::string> _loaded_modules;
 	Modules _euler;
 };
@@ -234,8 +254,6 @@ make_state(int argc, char **argv)
 	const auto config = util::Config::parse_args(argc, argv);
 	return make_state(config);
 }
-
-util::Reference<State> read_state(const mrb_state *mrb);
 
 } /* namespace euler::game */
 

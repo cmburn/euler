@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: ISC */
 
 #include "euler/game/game_ext.h"
+#include "../../../extern/mruby/include/mruby/class.h"
 #include "euler/game/util_ext.h"
 
 using namespace euler::game;
@@ -17,11 +18,13 @@ static constexpr auto state_title_storage = ATTR_READER(State, STATE_TYPE,
     STORAGE_TYPE, mod.util.storage, self->title_storage());
 
 static mrb_value
-state_allocate(mrb_state *mrb, mrb_value)
+state_allocate(mrb_state *mrb, mrb_value self)
 {
 	auto state = State::get(mrb);
 	assert(state != nullptr);
-	return state->self_value();
+	const auto c = mrb_class_ptr(self);
+	const auto obj = Data_Wrap_Struct(mrb, c, &STATE_TYPE, state.wrap());
+	return mrb_obj_value(obj);
 }
 
 static void

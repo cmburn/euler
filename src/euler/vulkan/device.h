@@ -10,10 +10,12 @@
 
 namespace euler::vulkan {
 class Renderer;
+class Device;
 
 class Device final {
 public:
-	Device(Renderer *renderer, vk::raii::Device &&device);
+	Device(const util::Reference<Renderer> &renderer,
+	    vk::raii::Device &&device, bool graphics_device = true);
 
 	const vk::raii::Device &
 	device() const
@@ -38,19 +40,24 @@ public:
 	void reset_pool();
 	void submit_single_use_buffer(vk::raii::CommandBuffer &cmd_buf) const;
 	vk::raii::CommandBuffer command_buffer();
-	vk::raii::CommandBuffers command_buffers(size_t n);
+	vk::raii::CommandBuffers command_buffers(size_t n) const;
 	vk::raii::CommandBuffer single_use_buffer();
 	vk::raii::Fence fence(vk::FenceCreateFlags flags) const;
 	vk::raii::Semaphore semaphore() const;
 
 private:
+	// void load_thread();
+
+	vk::raii::Queue make_queue(bool graphics_device, uint32_t idx) const;
+	vk::raii::CommandPool make_command_pool() const;
+
 	vk::raii::Device _device;
-	vk::raii::CommandPool _pool;
-	vk::raii::CommandPool _load_pool;
-	vk::raii::Queue _queue;
-	vk::raii::Queue _load_queue;
-	util::WeakReference<Renderer> _renderer;
 	PhysicalDevice &_physical_device;
+	vk::raii::Queue _queue;
+	// vk::raii::Queue _load_queue;
+	vk::raii::CommandPool _pool;
+	// vk::raii::CommandPool _load_pool;
+	util::WeakReference<Renderer> _renderer;
 };
 } /* namespace euler::vulkan */
 

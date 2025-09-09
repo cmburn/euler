@@ -30,6 +30,8 @@ public:
 
 	VmaAllocation &allocation() { return _allocation; }
 	const VmaAllocation &allocation() const { return _allocation; }
+	vk::raii::Buffer &buffer() { return _buffer; }
+	const vk::raii::Buffer &buffer() const { return _buffer; }
 
 private:
 	Device &_device;

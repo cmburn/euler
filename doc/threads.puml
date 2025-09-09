@@ -1,0 +1,12 @@
+@startuml
+'https://plantuml.com/component-diagram
+
+agent SDL
+agent Vulkan
+agent VulkanLoad
+agent Kompute
+agent mRuby
+
+Vulkan --> VulkanLoad
+
+@enduml

@@ -23,6 +23,8 @@ add_library(euler_vulkan STATIC
         shadow_environment.h
         surface.cpp
         surface.h
+        swapchain.cpp
+        swapchain.h
         texture.cpp
         texture.h
 )

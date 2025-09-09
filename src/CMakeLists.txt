@@ -11,6 +11,7 @@ set(EULER_COMPILE_OPTIONS
         -Wno-class-memaccess
         # -Wmissing-field-initializers pitches a fit with Vulkan structs
         -Wno-missing-field-initializers
+        -Wno-unused-function
 )
 
 add_subdirectory(euler/game)

@@ -120,29 +120,6 @@ logger_progname(mrb_state *mrb, const mrb_value self_value)
 	return mrb_str_new_cstr(mrb, self->progname().c_str());
 }
 
-static mrb_value
-logger_sink_set_severity(mrb_state *mrb, mrb_value self_value)
-{
-	const auto level_value = mrb_get_arg1(mrb);
-	const auto level = mrb_value_to_severity(mrb, level_value);
-	auto self
-	    = unwrap_data<Logger::Sink>(mrb, self_value, &LOGGER_SINK_TYPE);
-	assert(self != nullptr);
-	self->set_severity(level);
-	return mrb_nil_value();
-}
-
-static void
-init_logger_sink(mrb_state *mrb, Modules &mod)
-{
-	mod.util.logger.sink = mrb_define_class_under(mrb,
-	    mod.util.logger.klass, "Sink", mrb->object_class);
-	const auto sink = mod.util.logger.sink;
-	mrb_define_method(mrb, sink, "severity", logger_severity, 0);
-	mrb_define_method(mrb, sink, "severity=", logger_sink_set_severity,
-	    MRB_ARGS_REQ(1));
-}
-
 static void
 init_logger(mrb_state *mrb, Modules &mod)
 {
@@ -166,7 +143,6 @@ init_logger(mrb_state *mrb, Modules &mod)
 	    logger_log_with_severity<Logger::Severity::Fatal>, MRB_ARGS_REQ(1));
 	mrb_define_method(mrb, log, "unknown",
 	    logger_log_with_severity<Logger::Severity::Unknown>, MRB_ARGS_REQ(1));
-	init_logger_sink(mrb, mod);
 }
 
 static mrb_value

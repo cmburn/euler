@@ -43,6 +43,11 @@ public:
 
 	MSAA msaa() const;
 
+	vk::PhysicalDeviceProperties properties() const
+	{
+		return _physical_device.getProperties();
+	}
+
 private:
 	vk::raii::PhysicalDevice _physical_device;
 	Renderer *_renderer;

@@ -1226,4 +1226,5 @@ void
 euler::game::init_game_event(util::Reference<State> state)
 {
 	(void)state;
+
 }

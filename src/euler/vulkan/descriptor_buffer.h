@@ -9,24 +9,25 @@
 // #include <vk_mem_alloc.h>
 
 #include "euler/util/object.h"
+#include "euler/vulkan/buffer.h"
 #include "euler/vulkan/common.h"
 
 namespace euler::vulkan {
 class Renderer;
-class Buffer;
 
 class DescriptorBuffer final {
 public:
-	DescriptorBuffer(util::Reference<Renderer> &, vk::DeviceSize page_size = 65536);
+	DescriptorBuffer(util::Reference<Renderer> &r,
+	    vk::DeviceSize page_size = 65536);
 	// vk::DeviceSize copy_data(Data data, vk::raii::Buffer *dst);
 	struct BufferInfo {
-		vk::raii::Buffer &buffer;
+		vk::raii::Buffer *buffer;
 		vk::DeviceSize offset;
 	};
 
 	void begin_frame();
 	void end_frame(vk::raii::CommandBuffer &buf);
-	BufferInfo copy_data(std::span<uint8_t> data);
+	BufferInfo copy_data(std::span<const uint8_t> data);
 	BufferInfo reserve_space(vk::DeviceSize size);
 	void record_copy_pipeline_barrier(vk::raii::CommandBuffer &buf);
 	void record_compute_pipeline_barrier(vk::raii::CommandBuffer &buf);
@@ -34,12 +35,26 @@ public:
 
 private:
 	vk::DeviceSize _page_size = 0;
+	vk::DeviceSize _alignment = 0;
 	util::WeakReference<Renderer> _renderer;
 	struct InternalBuffer {
-		Buffer &device_buffer;
-		Buffer &stage_buffer;
-		std::vector<uint8_t> data;
+		Buffer device_buffer;
+		Buffer stage_buffer;
+		void *host_data = nullptr;
+		vk::DeviceSize size = 0;
+		void update_size(vk::DeviceSize data_size,
+		    vk::DeviceSize alignment);
 	};
+	InternalBuffer *append_buffer();
+	InternalBuffer *find_buffer(vk::DeviceSize size);
+	void record_barrier(
+		vk::AccessFlags src_access,
+		vk::AccessFlags dst_access,
+		uint32_t queue_family,
+		vk::PipelineStageFlags src_stage,
+		vk::PipelineStageFlags dst_stage,
+		vk::raii::CommandBuffer &buf
+		);
 	std::vector<InternalBuffer> _internal_buffers;
 	// vk::raii::CommandBuffer _copy_buffer;
 	std::vector<vk::BufferMemoryBarrier> _memory_barriers;

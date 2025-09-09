@@ -5,6 +5,8 @@
 
 namespace util = euler::util;
 
+static std::binary_semaphore renderer_semaphore(1);
+
 static const std::vector<const char *> &
 instance_extensions(const util::Reference<util::Logger> &log)
 {
@@ -31,7 +33,6 @@ instance_extensions(const util::Reference<util::Logger> &log)
 	if (vec.empty()) return vec;
 	log->info("Available SDL Vulkan instance extensions:");
 	for (const auto s : vec) log->info("\t- %s", s);
-	log->info("");
 	return vec;
 }
 
@@ -40,6 +41,10 @@ make_instance(const util::Reference<util::Logger> &log,
     const vk::raii::Context &context,
     const euler::vulkan::Renderer::Config &config)
 {
+	if (!renderer_semaphore.try_acquire()) {
+		throw std::runtime_error("Only one vulkan::Renderer may be "
+					 "active at any given time");
+	}
 	const vk::ApplicationInfo app_info {
 		.pApplicationName = config.application.c_str(),
 		.applicationVersion = config.version.to_vulkan(),
@@ -66,8 +71,7 @@ make_instance(const util::Reference<util::Logger> &log,
 
 euler::vulkan::Renderer::Renderer(const util::Reference<Surface> &surface,
     const Config &config)
-    : _render_thread(std::this_thread::get_id())
-    , _instance(make_instance(surface->log(), _context, config))
+    : _instance(make_instance(surface->log(), _context, config))
     , _config(config)
     , _surface(surface)
     , _log(surface->log())
@@ -76,12 +80,41 @@ euler::vulkan::Renderer::Renderer(const util::Reference<Surface> &surface,
 {
 }
 
+void
+euler::vulkan::Renderer::frame(const std::function<void()> &fn)
+{
+	try {
+		start_frame();
+		fn();
+		end_frame();
+	} catch (...) {
+		end_frame();
+		throw;
+	}
+}
+
+euler::vulkan::Renderer::~Renderer() { renderer_semaphore.release(); }
+
+void
+euler::vulkan::Renderer::start_frame()
+{
+	RenderTarget rt = {};
+	_surface->start_frame(rt);
+}
+
+void
+euler::vulkan::Renderer::end_frame()
+{
+	_frame_semaphore.release();
+}
+
 vk::raii::PhysicalDevice
 euler::vulkan::Renderer::select_physical_device()
 {
 	auto devices = _instance.enumeratePhysicalDevices();
 	if (devices.empty())
 		_log->fatal("Failed to enumerate physical devices");
+
 	/* prefer a discrete gpu */
 	std::optional<vk::raii::PhysicalDevice> discrete_device;
 	std::optional<vk::raii::PhysicalDevice> selected_device;
@@ -166,5 +199,5 @@ euler::vulkan::Renderer::select_device()
 euler::vulkan::Device
 euler::vulkan::Renderer::create_device()
 {
-	return Device { this, select_device() };
+	return Device { util::Reference(this), select_device() };
 }

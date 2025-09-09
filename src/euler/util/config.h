@@ -7,9 +7,10 @@
 
 #include "euler/util/logger.h"
 #include "euler/util/version.h"
+#include "euler/util/thread.h"
 
 namespace euler::util {
-static constexpr unsigned long long DEFAULT_THREAD_COUNT = 6;
+static constexpr nthread_t DEFAULT_THREAD_COUNT = 6;
 struct Config {
 	/* argv[0] */
 	std::string progname;
@@ -18,7 +19,7 @@ struct Config {
 	Version version = Version(0, 1, 0);
 	Logger::Severity log_level = Logger::Severity::Info;
 	std::vector<std::filesystem::path> load_path;
-	unsigned long long num_threads = DEFAULT_THREAD_COUNT;
+	nthread_t num_threads = DEFAULT_THREAD_COUNT;
 	static Config parse_args(int argc, char **argv);
 };
 } /* namespace euler::util */

@@ -27,11 +27,12 @@
 #define NK_API extern
 #define NK_INTERN static
 
+#include "nuklear.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "nuklear.h"
 #include "nuklear_sdl_vulkan.h"
 
 #ifdef __cplusplus

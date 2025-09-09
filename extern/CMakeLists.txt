@@ -1,6 +1,4 @@
 set(SDL_STATIC ON)
-set(SPDLOG_USE_STD_FORMAT ON)
-set(SPDLOG_BUILD_SHARED OFF)
 set(PHYSFS_BUILD_TEST OFF)
 set(BUILD_SHARED_LIBS OFF)
 
@@ -9,8 +7,8 @@ add_subdirectory(glm)
 add_subdirectory(physfs)
 add_subdirectory(nlohmann-json)
 add_subdirectory(VulkanMemoryAllocator)
-add_subdirectory(spdlog)
 add_subdirectory(libevent)
+add_subdirectory(kompute)
 
 target_sources(physfs-static PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/physfs/extras/physfssdl3.c

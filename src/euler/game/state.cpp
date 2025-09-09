@@ -6,6 +6,7 @@
 #include <mutex>
 #include <semaphore>
 
+#include <mruby.h>
 #include <SDL3/SDL_events.h>
 #include <mruby/compile.h>
 #include <mruby/presym.h>
@@ -59,15 +60,20 @@ sdl_init_flags()
 mrb_value
 euler::game::State::gv_state()
 {
-	return mrb_gv_get(_state, MRB_GVSYM(state));
+	return mrb_gv_get(_mrb, MRB_GVSYM(state));
+}
+void
+euler::game::State::update()
+{
+
 }
 
 euler::game::State::State(const util::Config &config)
     : _config(config)
 {
-	_log = util::make_reference<util::Logger>(config.progname,
+	_log = util::make_reference<util::Logger>(config.progname, "game",
 	    config.log_level);
-	_log->info("Creating state");
+	_log->debug("Creating state");
 	if (!state_count.try_acquire())
 		_log->fatal("Multiple states are not yet supported");
 }
@@ -80,7 +86,7 @@ euler::game::State::verify_gv_state()
 		log()->error("Global variable '$state' is not defined");
 		return false;
 	}
-	if (!mrb_obj_is_kind_of(_state, var, _euler.game.state)) {
+	if (!mrb_obj_is_kind_of(_mrb, var, _euler.game.state)) {
 		log()->error("Global variable '$state' does not inherit from "
 			     "Euler::Game::State");
 		return false;
@@ -89,7 +95,7 @@ euler::game::State::verify_gv_state()
 	// There are also three optional methods: load, draw, quit
 #define ASSERT_EXISTS(NAME)                                                    \
 	do {                                                                   \
-		if (!mrb_respond_to(_state, var, MRB_SYM(NAME))) {             \
+		if (!mrb_respond_to(_mrb, var, MRB_SYM(NAME))) {               \
 			log()->error(                                          \
 			    "Global variable '$state' does not implement "     \
 			    "the '" #NAME "' method");                         \
@@ -99,13 +105,13 @@ euler::game::State::verify_gv_state()
 	} while (0)
 #define CHECK_EXISTS(NAME)                                                     \
 	do {                                                                   \
-		if (mrb_respond_to(_state, var, MRB_SYM(NAME))) {              \
+		if (mrb_respond_to(_mrb, var, MRB_SYM(NAME))) {                \
 			_methods.NAME                                          \
-			    = mrb_respond_to(_state, var, MRB_SYM(NAME));      \
-			log()->info(                                           \
+			    = mrb_respond_to(_mrb, var, MRB_SYM(NAME));        \
+			log()->debug(                                           \
 			    "Found optional method '" #NAME "' for $state");   \
 		} else {                                                       \
-			log()->info("No '" #NAME "' method found for $state"); \
+			log()->debug("No '" #NAME "' method found for $state"); \
 		}                                                              \
 	} while (0)
 	ASSERT_EXISTS(input);
@@ -123,12 +129,12 @@ bool
 euler::game::State::app_update(const float dt)
 {
 	assert(_methods.update);
-	const auto arg = mrb_float_value(_state, dt);
-	mrb_funcall_id(_state, _self_value, MRB_SYM(update), 1, arg);
-	if (_state->exc != nullptr) {
+	const auto arg = mrb_float_value(_mrb, dt);
+	mrb_funcall_id(_mrb, _self_value, MRB_SYM(update), 1, arg);
+	if (_mrb->exc != nullptr) {
 		_log->error("Exception in update: {}",
 		    exception_string().value());
-		_state->exc = nullptr;
+		_mrb->exc = nullptr;
 		return false;
 	}
 	return true;
@@ -139,13 +145,12 @@ euler::game::State::app_input(const SDL_Event &event)
 {
 	try {
 		assert(_methods.input);
-		const auto arg
-		    = sdl_event_to_mrb(util::Reference(this), event);
-		mrb_funcall_id(_state, _self_value, MRB_SYM(input), 1, arg);
-		if (_state->exc != nullptr) {
+		const auto arg = sdl_event_to_mrb(util::Reference(this), event);
+		mrb_funcall_id(_mrb, _self_value, MRB_SYM(input), 1, arg);
+		if (_mrb->exc != nullptr) {
 			_log->error("Exception in input: {}",
 			    exception_string().value());
-			_state->exc = nullptr;
+			_mrb->exc = nullptr;
 			return false;
 		}
 		return true;
@@ -153,7 +158,7 @@ euler::game::State::app_input(const SDL_Event &event)
 		_log->error("Unhandled exception in input: {}", e.what());
 		return false;
 	} catch (mrb_jmpbuf *e) {
-		if (e != (_state->jmp)) throw e;
+		if (e != (_mrb->jmp)) throw e;
 		_log->error("Unhandled mruby exception in input: {}",
 		    exception_string().value());
 		return false;
@@ -165,18 +170,18 @@ euler::game::State::app_draw()
 {
 	if (!_methods.draw) return true;
 	try {
-		mrb_funcall_id(_state, _self_value, MRB_SYM(draw), 0);
-		if (_state->exc != nullptr) {
+		mrb_funcall_id(_mrb, _self_value, MRB_SYM(draw), 0);
+		if (_mrb->exc != nullptr) {
 			_log->error("Exception in draw: {}",
 			    exception_string().value());
-			_state->exc = nullptr;
+			_mrb->exc = nullptr;
 			return false;
 		}
 	} catch (const std::exception &e) {
 		_log->error("Unhandled exception in draw: {}", e.what());
 		return false;
 	} catch (mrb_jmpbuf *e) {
-		if (e != (_state->jmp)) throw e;
+		if (e != (_mrb->jmp)) throw e;
 		_log->error("Unhandled mruby exception in draw: {}",
 		    exception_string().value());
 		return false;
@@ -189,18 +194,18 @@ euler::game::State::app_load()
 {
 	if (!_methods.load) return true;
 	try {
-		mrb_funcall_id(_state, _self_value, MRB_SYM(load), 0);
-		if (_state->exc != nullptr) {
+		mrb_funcall_id(_mrb, _self_value, MRB_SYM(load), 0);
+		if (_mrb->exc != nullptr) {
 			_log->error("Exception in load: {}",
 			    exception_string().value());
-			_state->exc = nullptr;
+			_mrb->exc = nullptr;
 			return false;
 		}
 	} catch (const std::exception &e) {
 		_log->error("Unhandled exception in load: {}", e.what());
 		return false;
 	} catch (mrb_jmpbuf *e) {
-		if (e != (_state->jmp)) throw e;
+		if (e != (_mrb->jmp)) throw e;
 		_log->error("Unhandled mruby exception in load: {}",
 		    exception_string().value());
 		return false;
@@ -213,18 +218,18 @@ euler::game::State::app_quit()
 {
 	if (!_methods.quit) return true;
 	try {
-		mrb_funcall_id(_state, _self_value, MRB_SYM(quit), 0);
-		if (_state->exc != nullptr) {
+		mrb_funcall_id(_mrb, _self_value, MRB_SYM(quit), 0);
+		if (_mrb->exc != nullptr) {
 			_log->error("Exception in quit: {}",
 			    exception_string().value());
-			_state->exc = nullptr;
+			_mrb->exc = nullptr;
 			return false;
 		}
 	} catch (const std::exception &e) {
 		_log->error("Unhandled exception in quit: {}", e.what());
 		return false;
 	} catch (mrb_jmpbuf *e) {
-		if (e != (_state->jmp)) throw e;
+		if (e != (_mrb->jmp)) throw e;
 		_log->error("Unhandled mruby exception in quit: {}",
 		    exception_string().value());
 		return false;
@@ -235,9 +240,9 @@ euler::game::State::app_quit()
 std::optional<std::string_view>
 euler::game::State::exception_string() const
 {
-	if (_state->exc == nullptr) return std::nullopt;
-	auto str = mrb_obj_value(_state->exc);
-	auto value = mrb_obj_as_string(_state, str);
+	if (_mrb->exc == nullptr) return std::nullopt;
+	auto str = mrb_obj_value(_mrb->exc);
+	auto value = mrb_obj_as_string(_mrb, str);
 	const char *ptr = RSTRING_PTR(value);
 	const auto len = RSTRING_LEN(value);
 	/* ReSharper disable once CppDFALocalValueEscapesFunction */
@@ -256,28 +261,28 @@ euler::game::State::load_core()
 	 */
 	static std::once_flag once;
 	std::call_once(once, [&]() {
-		log()->info("Initializing global state...");
+		log()->debug("Initializing global state...");
 		main_thread_id = std::this_thread::get_id();
-		log()->info("Initializing global storage...");
+		log()->debug("Initializing global storage...");
 		init_fs(_config.progname.c_str());
-		log()->info("Initializing global SDL...");
+		log()->debug("Initializing global SDL...");
 		SDL_Init(sdl_init_flags());
-		log()->info("Global initialization complete");
+		log()->debug("Global initialization complete");
 	});
-	log()->info("Creating window");
+	log()->debug("Creating window");
 	_window
 	    = util::make_reference<graphics::Window>(_log, _config.progname);
-	log()->info("Initializing interpreter");
-	_state = mrb_open();
-	if (_state == nullptr) {
+	log()->debug("Initializing interpreter");
+	_mrb = mrb_open();
+	if (_mrb == nullptr) {
 		_log->error("Failed to initialize mruby state");
 		return false;
 	}
 	const auto weak = util::WeakReference(this);
-	_state->ud = util::unsafe_cast<void *>(weak);
-	log()->info("Initializing core modules");
+	_mrb->ud = util::unsafe_cast<void *>(weak);
+	log()->debug("Initializing core modules");
 	/* TODO: proper physfs limiting for module load */
-	_euler.module = mrb_define_module(_state, "Euler");
+	_euler.module = mrb_define_module(_mrb, "Euler");
 	auto self = util::Reference(this);
 	init_util(self);
 	init_vulkan(self);
@@ -285,10 +290,9 @@ euler::game::State::load_core()
 	init_gui(self);
 	init_physics(self);
 	init_game(self);
-	auto data = Data_Wrap_Struct(_state, _euler.game.state, &STATE_TYPE,
+	auto data = Data_Wrap_Struct(_mrb, _euler.game.state, &STATE_TYPE,
 	    self.wrap());
 	_self_value = mrb_obj_value(data);
-	mrb_gc_protect(_state, _self_value);
 	_log->debug("Core modules initialized");
 	return true;
 }
@@ -310,24 +314,24 @@ euler::game::State::load_entry(std::string_view path)
 	if (!load_text(path, content)) {
 		log()->error("Failed to load entry file '{}'", path);
 	}
-	log()->info("Entry file '{}' loaded successfully", path);
+	log()->debug("Entry file '{}' loaded successfully", path);
 	return true;
 }
 
 bool
 euler::game::State::load_text(std::string_view source, std::string_view data)
 {
-	auto ci = _state->c->ci > _state->c->cibase ? &_state->c->ci[-1]
-						    : _state->c->cibase;
+	auto ci = _mrb->c->ci > _mrb->c->cibase ? &_mrb->c->ci[-1]
+						: _mrb->c->cibase;
 	auto scope = ci->proc;
-	auto ctx = mrb_ccontext_new(_state);
+	auto ctx = mrb_ccontext_new(_mrb);
 	ctx->capture_errors = true;
 	if (scope != nullptr && MRB_PROC_CFUNC_P(scope)) ctx->upper = nullptr;
 	else ctx->upper = scope;
-	const auto p = mrb_parse_nstring(_state, data.data(), data.size(), ctx);
+	const auto p = mrb_parse_nstring(_mrb, data.data(), data.size(), ctx);
 	if (p == nullptr) {
 		log()->error("Failed to parse {}, out of memory!", source);
-		mrb_ccontext_free(_state, ctx);
+		mrb_ccontext_free(_mrb, ctx);
 		return false;
 	}
 	if (p->nerr > 0) {
@@ -337,48 +341,48 @@ euler::game::State::load_text(std::string_view source, std::string_view data)
 			_log->fatal("Error in {}: {} at line {}: {}", source,
 			    message, lineno, column);
 		}
-		mrb_ccontext_free(_state, ctx);
+		mrb_ccontext_free(_mrb, ctx);
 		mrb_parser_free(p);
 		return false;
 	}
-	const auto proc = mrb_generate_code(_state, p);
+	const auto proc = mrb_generate_code(_mrb, p);
 	if (proc == nullptr) {
 		_log->fatal("Failed to generate code for {}", source);
-		mrb_ccontext_free(_state, ctx);
+		mrb_ccontext_free(_mrb, ctx);
 		mrb_parser_free(p);
 		return false;
 	}
 
 	try {
-		mrb_toplevel_run(_state, proc);
+		mrb_toplevel_run(_mrb, proc);
 	} catch (mrb_jmpbuf *e) {
-		if (e != (_state->jmp)) throw;
-		mrb_ccontext_free(_state, ctx);
+		if (e != (_mrb->jmp)) throw;
+		mrb_ccontext_free(_mrb, ctx);
 		mrb_parser_free(p);
-		assert(_state->exc != nullptr);
+		assert(_mrb->exc != nullptr);
 		_log->fatal("Exception while executing {}: {}", source,
 		    exception_string().value());
 		return false;
 	}
 
-	mrb_ccontext_free(_state, ctx);
+	mrb_ccontext_free(_mrb, ctx);
 	mrb_parser_free(p);
 
-	if (_state->exc) {
+	if (_mrb->exc) {
 		_log->fatal("Failed to execute {}: {}", source,
 		    exception_string().value());
-		_state->exc = nullptr;
+		_mrb->exc = nullptr;
 		return false;
 	}
 
 	return true;
 }
 
-euler::util::Reference<euler::game::State>
-euler::game::read_state(const mrb_state *mrb)
+euler::util::nthread_t
+euler::game::State::available_threads() const
 {
-	return util::unsafe_cast<util::WeakReference<State>>(mrb->ud)
-	    .strengthen();
+	return std::min(_config.num_threads,
+	    std::thread::hardware_concurrency());
 }
 
 bool
@@ -388,6 +392,8 @@ euler::game::State::initialize()
 	if (!load_core()) return false;
 	if (!load_entry(_config.entry_file)) return false;
 	if (!verify_gv_state()) return false;
+	_self_value = gv_state();
+	mrb_gc_protect(_mrb, _self_value);
 	if (!app_load()) return false;
 	_tick = SDL_GetTicks();
 	return true;
@@ -396,13 +402,13 @@ bool
 euler::game::State::loop(int &exit_code)
 {
 	try {
-		return do_loop(exit_code);
+		return update(exit_code);
 	} catch (const std::exception &e) {
 		_log->error("Unhandled exception in loop: {}", e.what());
 		exit_code = EXIT_FAILURE;
 		return false;
 	} catch (mrb_jmpbuf *e) {
-		if (e != (_state->jmp)) throw e;
+		if (e != (_mrb->jmp)) throw e;
 		_log->error("Unhandled mruby exception in loop: {}",
 		    exception_string().value());
 		exit_code = EXIT_FAILURE;
@@ -411,10 +417,12 @@ euler::game::State::loop(int &exit_code)
 }
 
 bool
-euler::game::State::do_loop(int &exit_code)
+euler::game::State::update(int &exit_code)
 {
 	assert(util::is_main_thread());
-	const auto gc_idx = mrb_gc_arena_save(_state);
+	_last_tick = _tick;
+	_tick = SDL_GetTicks();
+	const auto gc_idx = mrb_gc_arena_save(_mrb);
 	SDL_Event e;
 	if (!SDL_WaitEvent(&e)) {
 		_log->error("Failed to wait for event: {}", SDL_GetError());
@@ -431,7 +439,7 @@ euler::game::State::do_loop(int &exit_code)
 	assert(_methods.update);
 	if (!app_update(_system->dt())) return false;
 	if (_methods.draw && !app_draw()) return false;
-	mrb_gc_arena_restore(_state, gc_idx);
+	mrb_gc_arena_restore(_mrb, gc_idx);
 	return true;
 }
 

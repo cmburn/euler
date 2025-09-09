@@ -12,7 +12,7 @@ main(const int argc, char **argv)
 			return EXIT_FAILURE;
 		}
 		int exit_code = 0;
-		while (state->loop(exit_code)) continue;
+		while (state->loop(exit_code)) { }
 		state->log()->info("Exiting with code {}", exit_code);
 		return exit_code;
 	} catch (const std::exception &e) {

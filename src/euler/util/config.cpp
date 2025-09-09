@@ -157,10 +157,10 @@ euler::util::Config::parse_args(int argc, char **argv)
 	};
 
 	Config out = {
-		.progname = argv[0],
+		.progname = std::filesystem::path(argv[0]).filename().string(),
 		.entry_file = {},
 		.name = "euler",
-		.version = util::Version(0, 1, 0),
+		.version = Version(0, 1, 0),
 		.log_level = Severity::Info,
 		.load_path = {},
 		.num_threads = DEFAULT_THREAD_COUNT,
@@ -187,12 +187,12 @@ euler::util::Config::parse_args(int argc, char **argv)
 		case 'n': parse_thread_count(out, options.optarg); break;
 		case 'q': {
 			out.log_level = static_cast<Severity>(
-			    static_cast<int>(out.log_level) - 1);
+			    static_cast<int>(out.log_level) + 1);
 			break;
 		}
 		case 'v': {
 			out.log_level = static_cast<Severity>(
-			    static_cast<int>(out.log_level) + 1);
+			    static_cast<int>(out.log_level) - 1);
 			break;
 		}
 		default: usage(out.progname);

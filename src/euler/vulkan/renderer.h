@@ -16,13 +16,14 @@
 #include "euler/vulkan/texture.h"
 
 namespace euler::vulkan {
-/* There can be multiple states per Euler instance, but there should be only
- * one renderer,
- */
+/* There can be multiple states per Euler instance, but there can only ever be
+ * one renderer. */
 class Renderer final : public util::Object {
 	friend class Surface;
 
 public:
+	static constexpr auto FRAMES_IN_FLIGHT = Swapchain::FRAMES_IN_FLIGHT;
+	using RenderTarget = Surface::RenderTarget;
 	struct Config {
 		util::Version version;
 		std::string application;
@@ -34,11 +35,6 @@ public:
 	util::Reference<Surface> surface() const;
 	void set_target(util::Reference<Texture> target);
 	void flush_sprite_batch();
-	bool
-	on_render_thread() const
-	{
-		return std::this_thread::get_id() == _render_thread;
-	}
 
 	const Config &
 	config() const
@@ -52,14 +48,46 @@ public:
 		return _allocator;
 	}
 
+	const PhysicalDevice &
+	physical_device() const
+	{
+		return _physical_device;
+	}
+
+	const Device &
+	device() const
+	{
+		return _device;
+	}
+
+	PhysicalDevice &
+	physical_device()
+	{
+		return _physical_device;
+	}
+
+	Device &
+	device()
+	{
+		return _device;
+	}
+
+	util::Reference<util::Logger> log() const { return _log; }
+
+	void frame(const std::function<void()> &fn);
+
+	~Renderer() override;
+
+
 private:
+	void start_frame();
+	void end_frame();
 	vk::raii::PhysicalDevice select_physical_device();
 	PhysicalDevice create_physical_device();
 	vk::raii::Device select_device();
 	Device create_device();
-	// vk::AllocationCallbacks *allocator();
 
-	std::thread::id _render_thread;
+	std::binary_semaphore _frame_semaphore = std::binary_semaphore(1);
 	vk::raii::Context _context = {};
 	vk::raii::Instance _instance;
 	Config _config;
@@ -67,9 +95,12 @@ private:
 	util::Reference<util::Logger> _log;
 	PhysicalDevice _physical_device;
 	Device _device;
+	RenderTarget _current_target;
+	std::array<vk::Fence, FRAMES_IN_FLIGHT> _fences;
 	uint32_t _graphics_queue_index = 0;
 	uint32_t _present_queue_index = 0;
 	uint32_t _compute_queue_index = 0;
+
 	VmaAllocator _allocator = nullptr;
 };
 } /* namespace euler::vulkan */

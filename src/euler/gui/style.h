@@ -10,44 +10,44 @@
 #include "euler/util/object.h"
 
 namespace euler::gui {
+using Color = graphics::Color;
+struct ColorTable {
+	Color text;
+	Color window;
+	Color header;
+	Color border;
+	Color button;
+	Color button_hover;
+	Color button_active;
+	Color toggle;
+	Color toggle_hover;
+	Color toggle_cursor;
+	Color select;
+	Color select_active;
+	Color slider;
+	Color slider_cursor;
+	Color slider_cursor_hover;
+	Color slider_cursor_active;
+	Color property;
+	Color edit;
+	Color edit_cursor;
+	Color dropdown;
+	Color chart;
+	Color chart_color;
+	Color chart_color_highlight;
+	Color scrollbar;
+	Color scrollbar_cursor;
+	Color scrollbar_cursor_hover;
+	Color scrollbar_cursor_active;
+	Color tab_header;
+	Color knob;
+	Color knob_cursor;
+	Color knob_cursor_hover;
+	Color knob_cursor_active;
+};
 
 /* Each GUI instance is associated with a Style. */
 struct Style final {
-	using Color = graphics::Color;
-	struct ColorTable {
-		Color text;
-		Color window;
-		Color header;
-		Color border;
-		Color button;
-		Color button_hover;
-		Color button_active;
-		Color toggle;
-		Color toggle_hover;
-		Color toggle_cursor;
-		Color select;
-		Color select_active;
-		Color slider;
-		Color slider_cursor;
-		Color slider_cursor_hover;
-		Color slider_cursor_active;
-		Color property;
-		Color edit;
-		Color edit_cursor;
-		Color dropdown;
-		Color chart;
-		Color chart_color;
-		Color chart_color_highlight;
-		Color scrollbar;
-		Color scrollbar_cursor;
-		Color scrollbar_cursor_hover;
-		Color scrollbar_cursor_active;
-		Color tab_header;
-		Color knob;
-		Color knob_cursor;
-		Color knob_cursor_hover;
-		Color knob_cursor_active;
-	};
 
 	struct Item {
 		std::variant<util::Reference<graphics::Image>, graphics::Color>
@@ -339,7 +339,6 @@ struct Style final {
 		glm::vec2 tooltip_padding;
 	};
 
-	ColorTable color_table;
 	util::Reference<graphics::Font> font;
 	Text text;
 	Button button;

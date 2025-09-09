@@ -9,16 +9,16 @@ add_library(euler_gui STATIC
         dropdown.h
         element.cpp
         element.h
-        image.cpp
-        image.h
-        instance.cpp
-        instance.h
+        gui.cpp
+        gui.h
         knob.cpp
         knob.h
         progress_bar.cpp
         progress_bar.h
         radio_button.cpp
         radio_button.h
+        row.cpp
+        row.h
         selectable.cpp
         selectable.h
         slider.cpp

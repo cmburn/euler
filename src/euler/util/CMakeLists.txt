@@ -1,18 +1,22 @@
 add_library(euler_util STATIC
+        config.cpp
+        config.h
         logger.cpp
         logger.h
+        majordomo.cpp
+        majordomo.h
         object.cpp
         object.h
         state.cpp
         state.h
         storage.cpp
         storage.h
-        version.cpp
-        version.h
         thread.cpp
         thread.h
-        config.cpp
-        config.h
+        version.cpp
+        version.h
+        worker.cpp
+        worker.h
 )
 
 add_library(euler_util_optparse STATIC
@@ -28,7 +32,6 @@ target_link_libraries(euler_util PUBLIC
 
 target_link_libraries(euler_util PRIVATE
         physfs-static
-        spdlog::spdlog
         euler_util_optparse
 )
 

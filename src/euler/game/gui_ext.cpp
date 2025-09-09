@@ -93,7 +93,7 @@ init_button(mrb_state *mrb, Modules &mod)
 {
 	mod.gui.button = mrb_define_class_under(mrb, mod.gui.module, "Button",
 	    mod.gui.element);
-	const auto button = mod.gui.button;
+	//const auto button = mod.gui.button;
 }
 
 void
