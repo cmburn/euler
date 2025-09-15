@@ -5,10 +5,11 @@
 
 #include <vulkan/vulkan_raii.hpp>
 
-#include "euler/vulkan/common.h"
+#include "euler/util/object.h"
 
 namespace euler::vulkan {
 class Renderer;
+class Surface;
 
 class PhysicalDevice final {
 public:
@@ -41,12 +42,14 @@ public:
 		return _compute_family;
 	}
 
-	MSAA msaa() const;
+	vk::SampleCountFlagBits msaa() const;
 
 	vk::PhysicalDeviceProperties properties() const
 	{
 		return _physical_device.getProperties();
 	}
+
+	bool supports_surface(const util::Reference<Surface> &surface) const;
 
 private:
 	vk::raii::PhysicalDevice _physical_device;

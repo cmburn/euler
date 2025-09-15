@@ -4,8 +4,8 @@
 
 #include "euler/vulkan/renderer.h"
 
-euler::vulkan::Camera::Camera(const util::Reference<Renderer> &renderer,
-    const Spec &spec) : _renderer(renderer)
+euler::vulkan::Camera::Camera(const util::Reference<Surface> &surface,
+    const Spec &spec) : _surface(surface)
 {
 	set_spec(spec);
 }
@@ -14,20 +14,26 @@ euler::vulkan::Camera::set_spec(const Spec &spec)
 {
 	_spec = spec;
 	if (_spec.on_screen.w == 0.0f)
-		_spec.on_screen.w = renderer()->surface()->width();
+		_spec.on_screen.w = surface()->width();
 	if (_spec.on_screen.h == 0.0f)
-		_spec.on_screen.h = renderer()->surface()->height();
+		_spec.on_screen.h = surface()->height();
 }
 
 void
 euler::vulkan::Camera::set_state(State state)
 {
-	renderer()->flush_sprite_batch();
+	surface()->flush_sprite_batch();
 	_state = state;
 }
 
-euler::util::Reference<euler::vulkan::Renderer>
-euler::vulkan::Camera::renderer() const
+void
+euler::vulkan::Camera::update_ubo(glm::mat4 &)
 {
-	return _renderer.strengthen();
+	/* TODO */
+}
+
+euler::util::Reference<euler::vulkan::Surface>
+euler::vulkan::Camera::surface() const
+{
+	return _surface.strengthen();
 }

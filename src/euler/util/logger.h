@@ -80,8 +80,10 @@ public:
 		    /* [Severity::Warn]    = */ "warn",
 		    /* [Severity::Error]   = */ "error",
 		    /* [Severity::Fatal]   = */ "fatal",
-		    /* [Severity::Unknown] = */ "unknown",
+		    /* [Severity::Unknown] = */ "any",
 	    };
+
+	static constexpr size_t MAX_SEVERITY_LENGTH = 5;
 
 	template <typename... Args>
 	void

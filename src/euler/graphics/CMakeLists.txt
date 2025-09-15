@@ -1,8 +1,6 @@
 add_library(euler_graphics STATIC
         camera.cpp
         camera.h
-        color.cpp
-        color.h
         font.cpp
         font.h
         image.cpp

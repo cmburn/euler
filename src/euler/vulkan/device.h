@@ -35,6 +35,18 @@ public:
 		return _physical_device;
 	}
 
+	vk::raii::Queue &
+	queue()
+	{
+		return _queue;
+	}
+
+	const vk::raii::Queue &
+	queue() const
+	{
+		return _queue;
+	}
+
 	util::Reference<Renderer> renderer() const;
 
 	void reset_pool();

@@ -1,56 +1,55 @@
 /* SPDX-License-Identifier: ISC */
 
 #include "euler/gui/window.h"
-#include "euler/gui/gui.h"
-#include "euler/gui/nuklear_shim.h"
 
-static nk_uint
-to_nk(const euler::gui::Window::Flags &flags)
+#include <vulkan/vulkan_raii.hpp>
+
+#include "euler/gui/nuklear_defs.h"
+#include "euler/gui/widget.h"
+
+euler::gui::Window::Window(const util::Reference<util::Logger> &parent,
+    const std::string &progname)
+    : graphics::Window(parent, progname)
 {
-	nk_uint out = 0;
-	if (flags.border) out |= NK_WINDOW_BORDER;
-	if (flags.moveable) out |= NK_WINDOW_MOVABLE;
-	if (flags.scalable) out |= NK_WINDOW_SCALABLE;
-	if (flags.closeable) out |= NK_WINDOW_CLOSABLE;
-	if (flags.minimizable) out |= NK_WINDOW_MINIMIZABLE;
-	if (flags.no_scrollbar) out |= NK_WINDOW_NO_SCROLLBAR;
-	if (flags.title) out |= NK_WINDOW_TITLE;
-	if (flags.scroll_auto_hide) out |= NK_WINDOW_SCROLL_AUTO_HIDE;
-	if (flags.background) out |= NK_WINDOW_BACKGROUND;
-	if (flags.scale_left) out |= NK_WINDOW_SCALE_LEFT;
-	if (flags.no_input) out |= NK_WINDOW_NO_INPUT;
-	return out;
 }
 
+euler::gui::Window::~Window() { nk_sdl_shutdown(_sdl); }
+
 void
-euler::gui::Window::row(bool dynamic,
-    std::function<void(const util::Reference<Row> &)> &fn, float height,
-    int cols)
+euler::gui::Window::widget(const char *title,
+    const std::function<void(const util::Reference<Widget> &)> &fn,
+    const Widget::Rectangle &rect, const Widget::Flags &flags)
 {
-	const auto row = util::make_reference<Row>(dynamic, height, cols,
+	const auto win = util::make_reference<Widget>(title, rect, flags,
 	    util::Reference(this));
-	row->call(fn);
+	win->call(fn);
 }
 
 void
-euler::gui::Window::call(
-    const std::function<void(const util::Reference<Window> &)> &fn)
+euler::gui::Window::button(const char *,
+    const std::function<void(const util::Reference<Button> &)> &)
 {
-	const struct nk_rect rect = {
-		.x = _rect.x,
-		.y = _rect.y,
-		.w = _rect.w,
-		.h = _rect.h,
-	};
+}
 
-	if (nk_begin(gui()->context(), "Window", rect, to_nk(_flags))) {
-		const auto self = util::Reference(this);
-		try {
-			fn(self);
-		} catch (...) {
-			nk_end(gui()->context());
-			throw;
-		}
-	}
-	nk_end(gui()->context());
+const nk_context *
+euler::gui::Window::context() const
+{
+	return nk_sdl_context(_sdl);
+}
+
+nk_context *
+euler::gui::Window::context()
+{
+	return nk_sdl_context(_sdl);
+}
+
+vk::raii::Semaphore
+euler::gui::Window::gui_render() const
+{
+	const auto &dev = renderer()->device().device();
+	const auto &queue = renderer()->device().queue();
+	const auto &rf = render_finished();
+	const auto semaphore = nk_sdl_render(_sdl, *queue, image_index(), *rf,
+	    NK_ANTI_ALIASING_ON);
+	return vk::raii::Semaphore(dev, semaphore);
 }

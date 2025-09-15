@@ -17,6 +17,5 @@ set(EULER_COMPILE_OPTIONS
 add_subdirectory(euler/game)
 add_subdirectory(euler/graphics)
 add_subdirectory(euler/gui)
-add_subdirectory(euler/physics)
 add_subdirectory(euler/util)
 add_subdirectory(euler/vulkan)

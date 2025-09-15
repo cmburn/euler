@@ -11,17 +11,31 @@ euler::vulkan::PhysicalDevice::PhysicalDevice(Renderer *renderer,
 {
 }
 
-euler::vulkan::MSAA
+vk::SampleCountFlagBits
 euler::vulkan::PhysicalDevice::msaa() const
 {
 	const auto limits = _physical_device.getProperties().limits;
 	const auto counts = limits.framebufferColorSampleCounts
 	    & limits.framebufferDepthSampleCounts;
-	if (counts & vk::SampleCountFlagBits::e64) return MSAA::x64;
-	if (counts & vk::SampleCountFlagBits::e32) return MSAA::x32;
-	if (counts & vk::SampleCountFlagBits::e16) return MSAA::x16;
-	if (counts & vk::SampleCountFlagBits::e8) return MSAA::x8;
-	if (counts & vk::SampleCountFlagBits::e4) return MSAA::x4;
-	if (counts & vk::SampleCountFlagBits::e2) return MSAA::x2;
-	return MSAA::x1;
+	if (counts & vk::SampleCountFlagBits::e64)
+		return vk::SampleCountFlagBits::e64;
+	if (counts & vk::SampleCountFlagBits::e32)
+		return vk::SampleCountFlagBits::e32;
+	if (counts & vk::SampleCountFlagBits::e16)
+		return vk::SampleCountFlagBits::e16;
+	if (counts & vk::SampleCountFlagBits::e8)
+		return vk::SampleCountFlagBits::e8;
+	if (counts & vk::SampleCountFlagBits::e4)
+		return vk::SampleCountFlagBits::e4;
+	if (counts & vk::SampleCountFlagBits::e2)
+		return vk::SampleCountFlagBits::e2;
+	return vk::SampleCountFlagBits::e1;
+}
+
+bool
+euler::vulkan::PhysicalDevice::supports_surface(
+    const util::Reference<Surface> &surface) const
+{
+	return _physical_device.getSurfaceSupportKHR(graphics_family(),
+	    surface->surface());
 }

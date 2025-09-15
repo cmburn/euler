@@ -79,34 +79,16 @@ euler::vulkan::Renderer::Renderer(const util::Reference<Surface> &surface,
     , _device(create_device())
 {
 }
-
-void
-euler::vulkan::Renderer::frame(const std::function<void()> &fn)
+std::optional<euler::vulkan::Renderer::ShaderData>
+euler::vulkan::Renderer::shader_data(std::string_view key)
 {
-	try {
-		start_frame();
-		fn();
-		end_frame();
-	} catch (...) {
-		end_frame();
-		throw;
-	}
+	auto builtin = load_builtin_shader(key);
+	if (builtin.has_value()) return *builtin;
+	if (!_runtime_shaders.contains(std::string(key))) return std::nullopt;
+	return _runtime_shaders.at(std::string(key));
 }
 
 euler::vulkan::Renderer::~Renderer() { renderer_semaphore.release(); }
-
-void
-euler::vulkan::Renderer::start_frame()
-{
-	RenderTarget rt = {};
-	_surface->start_frame(rt);
-}
-
-void
-euler::vulkan::Renderer::end_frame()
-{
-	_frame_semaphore.release();
-}
 
 vk::raii::PhysicalDevice
 euler::vulkan::Renderer::select_physical_device()
@@ -200,4 +182,17 @@ euler::vulkan::Device
 euler::vulkan::Renderer::create_device()
 {
 	return Device { util::Reference(this), select_device() };
+}
+
+const uint8_t *
+euler_vulkan_renderer_shader_data(euler_vulkan_renderer *renderer,
+    const char *key, size_t *size_out)
+{
+	const auto out = renderer->shader_data(key);
+	if (!out.has_value()) {
+		*size_out = 0;
+		return nullptr;
+	}
+	*size_out = out->size();
+	return out->data();
 }

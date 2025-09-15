@@ -3,8 +3,8 @@
 #ifndef EULER_GUI_ELEMENT_H
 #define EULER_GUI_ELEMENT_H
 
-#include "euler/util/object.h"
 #include "euler/graphics/window.h"
+#include "euler/util/object.h"
 
 namespace euler::gui {
 class Element : public util::Object {

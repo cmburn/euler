@@ -3,14 +3,14 @@
 #ifndef EULER_GUI_STYLE_H
 #define EULER_GUI_STYLE_H
 
-#include "euler/graphics/color.h"
 #include "euler/graphics/font.h"
 #include "euler/graphics/image.h"
 #include "euler/gui/common.h"
+#include "euler/util/color.h"
 #include "euler/util/object.h"
 
 namespace euler::gui {
-using Color = graphics::Color;
+using Color = util::Color;
 struct ColorTable {
 	Color text;
 	Color window;
@@ -48,10 +48,8 @@ struct ColorTable {
 
 /* Each GUI instance is associated with a Style. */
 struct Style final {
-
 	struct Item {
-		std::variant<util::Reference<graphics::Image>, graphics::Color>
-		    data;
+		std::variant<util::Reference<graphics::Image>, Color> data;
 		std::optional<glm::u16vec4> bounds;
 	};
 

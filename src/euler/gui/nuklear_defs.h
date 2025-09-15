@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: ISC */
 
-#ifndef EULER_GUI_NUKLEAR_SHIM_H
-#define EULER_GUI_NUKLEAR_SHIM_H
+#ifndef EULER_GUI_NUKLEAR_DEFS_H
+#define EULER_GUI_NUKLEAR_DEFS_H
 
 #include <assert.h>
 #include <string.h>
@@ -21,6 +21,12 @@
 #define NK_STATIC_ASSERT(...) static_assert(__VA_ARGS__)
 #elif __STDC_VERSION__ >= 201112L
 #define NK_STATIC_ASSERT(...) _Static_assert(__VA_ARGS__)
+#else
+#ifndef __cplusplus
+#error "C11 or greater is required"
+#else
+#define NK_ALIGNOF
+#endif
 #endif
 #define NK_ASSERT(expr) assert(expr)
 #define NK_MEMSET(ptr, val, size) memset(ptr, val, size)
@@ -29,15 +35,19 @@
 
 #include "nuklear.h"
 
-#ifdef __cplusplus
-extern "C" {
+#undef NK_ALIGNOF
+
+#if __STDC_VERSION__ >= 202311L
+#define NK_ALIGNOF(...) alignof(__VA_ARGS__)
+#elif __STDC_VERSION__ >= 201112L
+#define NK_ALIGNOF(...) _Alignof(__VA_ARGS__)
+#elif defined(__cplusplus)
+#define NK_ALIGNOF(...)
+#else
+#error "C11 or greater is required"
 #endif
 
 #include "nuklear_sdl_vulkan.h"
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* EULER_GUI_NUKLEAR_SHIM_H */
+#endif /* EULER_GUI_NUKLEAR_DEFS_H */
 

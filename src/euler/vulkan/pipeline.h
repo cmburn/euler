@@ -13,20 +13,28 @@ class Pipeline : public util::Object {
 public:
 	~Pipeline() override = default;
 
+	struct ComputePushBuffer {
+		uint32_t draw_count;
+	};
+
 	vk::raii::Pipeline &
-	pipeline()
+	compute_pipeline()
 	{
-		return _pipeline;
+		return _pipelines[0];
 	}
 
 	const vk::raii::Pipeline &
-	pipeline() const
+	compute_pipeline() const
 	{
-		return _pipeline;
+		return _pipelines[0];
 	}
 
+	const vk::raii::PipelineLayout &layout() const;
+	vk::raii::PipelineLayout &layout();
+
 protected:
-	vk::raii::Pipeline _pipeline;
+	Pipeline();
+	std::array<vk::raii::Pipeline, 4> _pipelines;
 };
 
 } /* namespace euler::vulkan */

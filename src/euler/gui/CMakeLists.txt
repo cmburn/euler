@@ -9,8 +9,8 @@ add_library(euler_gui STATIC
         dropdown.h
         element.cpp
         element.h
-        gui.cpp
-        gui.h
+        window.cpp
+        window.h
         knob.cpp
         knob.h
         progress_bar.cpp
@@ -27,17 +27,16 @@ add_library(euler_gui STATIC
         style.h
         widget.cpp
         widget.h
-        window.cpp
-        window.h
         text.cpp
         text.h
 )
 
-add_library(nuklear STATIC
-        nuklear_shim.h
+add_library(euler_gui_nuklear STATIC
+        nuklear_defs.h
         nuklear.h
         nuklear_sdl_vulkan.h
-        nuklear_shim.c
+        nuklear_sdl_vulkan.c
+        nuklear.c
 )
 
 target_link_libraries(euler_gui PUBLIC
@@ -48,5 +47,5 @@ target_link_libraries(euler_gui PUBLIC
 target_compile_options(euler_gui PRIVATE ${EULER_COMPILE_OPTIONS})
 
 target_link_libraries(euler_gui PRIVATE
-        nuklear
+        euler_gui_nuklear
 )

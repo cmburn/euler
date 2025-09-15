@@ -22,6 +22,7 @@
 #include "euler/game/util_ext.h"
 #include "euler/game/vulkan_ext.h"
 #include "event.h"
+#include "euler/game/window.h"
 
 #include "euler/util/storage.h"
 #include "euler/util/thread.h"
@@ -61,11 +62,6 @@ mrb_value
 euler::game::State::gv_state()
 {
 	return mrb_gv_get(_mrb, MRB_GVSYM(state));
-}
-void
-euler::game::State::update()
-{
-
 }
 
 euler::game::State::State(const util::Config &config)
@@ -271,7 +267,7 @@ euler::game::State::load_core()
 	});
 	log()->debug("Creating window");
 	_window
-	    = util::make_reference<graphics::Window>(_log, _config.progname);
+	    = util::make_reference<Window>(_log, _config.progname);
 	log()->debug("Initializing interpreter");
 	_mrb = mrb_open();
 	if (_mrb == nullptr) {

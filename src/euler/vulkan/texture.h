@@ -16,6 +16,7 @@ public:
 	Texture(Image &&image);
 	Texture(const std::filesystem::path &path);
 	~Texture() override;
+
 };
 } /* namespace euler::vulkan */
 

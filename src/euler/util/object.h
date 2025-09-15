@@ -284,7 +284,6 @@ make_reference(const T *ptr)
 	static_assert(std::is_base_of_v<Object, T>);
 	return Reference<T>(const_cast<T *>(ptr));
 }
-
 } /* namespace Euler::MRuby */
 
 #endif /* EULER_UTIL_OBJECT_H */

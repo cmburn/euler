@@ -9,6 +9,7 @@
 
 namespace euler::vulkan {
 class Renderer;
+class Surface;
 
 class Camera final : public util::Object {
 public:
@@ -35,7 +36,7 @@ public:
 			float h;
 		} on_screen;
 	};
-	Camera(const util::Reference<Renderer> &renderer, const Spec &spec);
+	Camera(const util::Reference<Surface> &surface, const Spec &spec);
 	~Camera() override = default;
 	void set_spec(const Spec &spec);
 	const Spec &
@@ -47,8 +48,8 @@ public:
 	/* ReSharper disable once CppHidingFunction */
 	State state() const { return _state; }
 	void set_state(State state);
-	util::Reference<Renderer> renderer() const;
-	void update_ubo(glm::mat4 &);
+	void update_ubo(glm::mat4 &mat);
+	util::Reference<Surface> surface() const;
 
 	Index index() const
 	{
@@ -59,7 +60,7 @@ public:
 private:
 	Spec _spec;
 	Index _index = 0;
-	util::WeakReference<Renderer> _renderer;
+	util::WeakReference<Surface> _surface;
 	State _state = State::Normal;
 };
 } /* namespace euler::vulkan */

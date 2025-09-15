@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: ISC */
 
-#define NK_IMPLEMENTATION
+#include <vulkan/vulkan.h>
+
 #define NK_SDL_VULKAN_IMPLEMENTATION
-#include "euler/gui/nuklear_shim.h"
+#include "euler/gui/nuklear_defs.h"

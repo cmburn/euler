@@ -13,7 +13,7 @@
 #include "euler/vulkan/surface.h"
 
 namespace euler::graphics {
-class Window final : public vulkan::Surface {
+class Window : public vulkan::Surface {
 	struct InputGuard {
 		util::Reference<Window> window;
 		~InputGuard() { window->end_input(); }
@@ -29,8 +29,8 @@ public:
 	    int height = DEFAULT_HEIGHT, SDL_WindowFlags flags = DEFAULT_FLAGS);
 	~Window() override;
 
-	size_t width() const override;
-	size_t height() const override;
+	uint32_t width() const override;
+	uint32_t height() const override;
 
 	const std::string &
 	title() const

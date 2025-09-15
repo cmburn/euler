@@ -6,8 +6,10 @@ set(CMAKE_C_STANDARD 11)
 
 find_package(Vulkan REQUIRED)
 find_package(PkgConfig REQUIRED)
+find_package(Ruby REQUIRED)
 
 set(EULER_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/src)
+set(EULER_SHADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
 add_subdirectory(extern)
 include_directories(${EULER_ROOT})
 add_subdirectory(src)

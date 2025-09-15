@@ -1,10 +1,10 @@
 add_library(euler_util STATIC
+        color.cpp
+        color.h
         config.cpp
         config.h
         logger.cpp
         logger.h
-        majordomo.cpp
-        majordomo.h
         object.cpp
         object.h
         state.cpp
@@ -15,8 +15,6 @@ add_library(euler_util STATIC
         thread.h
         version.cpp
         version.h
-        worker.cpp
-        worker.h
 )
 
 add_library(euler_util_optparse STATIC

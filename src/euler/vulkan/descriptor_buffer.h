@@ -11,6 +11,7 @@
 #include "euler/util/object.h"
 #include "euler/vulkan/buffer.h"
 #include "euler/vulkan/common.h"
+#include "euler/vulkan/command_buffer.h"
 
 namespace euler::vulkan {
 class Renderer;
@@ -26,11 +27,11 @@ public:
 	};
 
 	void begin_frame();
-	void end_frame(vk::raii::CommandBuffer &buf);
+	void end_frame(CommandBuffer &buf);
 	BufferInfo copy_data(std::span<const uint8_t> data);
 	BufferInfo reserve_space(vk::DeviceSize size);
-	void record_copy_pipeline_barrier(vk::raii::CommandBuffer &buf);
-	void record_compute_pipeline_barrier(vk::raii::CommandBuffer &buf);
+	void record_copy_pipeline_barrier(CommandBuffer &buf);
+	void record_compute_pipeline_barrier(CommandBuffer &buf);
 	util::Reference<Renderer> renderer() const;
 
 private:

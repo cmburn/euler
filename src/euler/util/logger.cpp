@@ -238,23 +238,22 @@ euler::util::Logger::format_message(const Severity level,
 
 	ss << color_for(message_color) << "[" << color_for(severity_color);
 	write_time(ss);
-	ss << color_for(message_color) << "] [" << color_for(severity_color)
-	   << severity_name(level) << color_for(message_color) << "]";
 	const auto sev_str = severity_name(level);
+	ss << color_for(message_color) << "] " << color_for(severity_color);
+	const auto padding = MAX_SEVERITY_LENGTH - sev_str.size();
+	for (size_t i = 0; i < padding; i++) ss << ' ';
+	ss << "[" << sev_str << color_for(message_color) << "]";
 	{
 		std::lock_guard lock(_progname_mutex);
 		ss << " [" << color_for(severity_color) << _progname
-		<< color_for(message_color) << "::";
+		   << color_for(message_color) << "::";
 	}
 	{
 		std::lock_guard lock(_subsystem_mutex);
 		ss << color_for(severity_color) << _subsystem;
 	}
-	ss << color_for(message_color) << "] ";
-	const auto padding = sizeof("unknown") - sev_str.size();
-	for (size_t i = 0; i < padding; i++) ss << ' ';
-	ss << message << std::endl;
-	ss << color_for(Color::White);
+	ss << color_for(message_color) << "] - " << color_for(message_color)
+	   << message << std::endl;
 	return ss.str();
 }
 

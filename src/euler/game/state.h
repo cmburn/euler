@@ -13,7 +13,7 @@
 
 #include "euler/game/system.h"
 #include "euler/graphics/window.h"
-#include "euler/gui/gui.h"
+#include "euler/gui/window.h"
 #include "euler/util/config.h"
 #include "euler/util/logger.h"
 #include "euler/util/state.h"
@@ -237,7 +237,7 @@ private:
 	util::Reference<util::Storage> _title_storage;
 	util::Reference<vulkan::Renderer> _renderer;
 	util::Reference<graphics::Window> _window;
-	util::Reference<gui::Gui> _gui;
+	util::Reference<gui::Window> _gui;
 	std::unordered_set<std::string> _loaded_modules;
 	Modules _euler;
 };

@@ -19,12 +19,13 @@ add_library(euler_game STATIC
         util_ext.h
         vulkan_ext.cpp
         vulkan_ext.h
+        window.cpp
+        window.h
 )
 
 target_link_libraries(euler_game PUBLIC
         euler_graphics
         euler_gui
-        euler_physics
         euler_util
         euler_vulkan
 )

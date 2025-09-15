@@ -6,3 +6,8 @@ This is to ensure changes can be made for the sake of portability. Platforms
 that do not support these dependencies are not expected to be supported.
 
 Only PC and Switch are targets at the moment.
+
+A minimum of three threads is required. One for SDL, one for Vulkan, and one
+for the mRuby interpreter.
+
+The engine should be fully thread-safe, anything else is a bug.

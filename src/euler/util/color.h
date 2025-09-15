@@ -1,14 +1,14 @@
 /* SPDX-License-Identifier: ISC */
 
-#ifndef EULER_GRAPHICS_COLOR_H
-#define EULER_GRAPHICS_COLOR_H
+#ifndef EULER_UTIL_COLOR_H
+#define EULER_UTIL_COLOR_H
 
 #include <cstdint>
 #include <SDL3/SDL_pixels.h>
 
 #include "euler/util/object.h"
 
-namespace euler::graphics {
+namespace euler::util {
 
 class Color {
 public:
@@ -122,6 +122,6 @@ static constexpr Color RED { 255, 0, 0, 255 };
 static constexpr Color GREEN { 0, 255, 0, 255 };
 static constexpr Color BLUE { 0, 0, 255, 255 };
 
-} /* namespace euler::graphics */
+} /* namespace euler::util */
 
-#endif /* EULER_GRAPHICS_COLOR_H */
+#endif /* EULER_UTIL_COLOR_H */

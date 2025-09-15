@@ -3,71 +3,57 @@
 #ifndef EULER_GUI_WIDGET_H
 #define EULER_GUI_WIDGET_H
 
-#include <optional>
+#include <functional>
 #include <string>
 
-#include <glm/glm.hpp>
-
-#include "element.h"
+#include "euler/gui/row.h"
 #include "euler/util/object.h"
 
 namespace euler::gui {
-class Widget : public util::Object {
-public:
-	Widget(const util::WeakReference<util::Logger> &parent);
-	using Rectangle = glm::mat2;
+class Window;
 
-	struct Config {
-		Config();
-		std::optional<std::string> title;
-		bool draw_border : 1;
-		bool is_movable : 1;
-		bool is_scalable : 1;
-		bool is_closable : 1;
-		bool is_minimizable : 1;
-		bool has_scrollbar : 1;
-		bool auto_hide_scrollbar : 1;
-		bool keep_in_background : 1;
-		bool scaler_on_left : 1;
-		bool no_input : 1;
+class Widget final : public util::Object {
+public:
+	struct Flags {
+		bool border : 1 = false;
+		bool moveable : 1 = false;
+		bool scalable : 1 = false;
+		bool closeable : 1 = false;
+		bool minimizable : 1 = false;
+		bool no_scrollbar : 1 = false;
+		bool title : 1 = false;
+		bool scroll_auto_hide : 1 = false;
+		bool background : 1 = false;
+		bool scale_left : 1 = false;
+		bool no_input : 1 = false;
 	};
 
-	const Config &config() const;
-	void set_config(const Config &config);
-	const std::string &name() const;
+	struct Rectangle {
+		float x = 0;
+		float y = 0;
+		float w = 100;
+		float h = 100;
+	};
 
-	void
-	set_position(const float x, const float y)
-	{
-		_position = glm::vec2(x, y);
-	}
+	Widget(const char *title, const Rectangle &rect, const Flags &flags,
+	    const util::Reference<Window> &gui);
 
-	void
-	set_size(const float w, const float h)
-	{
-		_size = glm::vec2(w, h);
-	}
+	void row(bool dynamic,
+	    std::function<void(const util::Reference<Row> &)> &fn,
+	    float height = 24.0f, int cols = 1);
 
-	Widget(std::string_view name, float x, float y, float w, float h,
-	    Config config = {});
-
-	void
-	add_row(std::vector<util::Reference<Element>> &&row)
-	{
-		_rows.emplace_back(std::move(row));
-	}
+	void call(
+	    const std::function<void(const util::Reference<Widget> &)> &fn);
+	util::Reference<Window> gui() const;
+	~Widget() override = default;
 
 private:
-	Config _config;
-	std::string _name;
-	glm::vec2 _position;
-	glm::vec2 _size;
-	std::vector<std::vector<util::Reference<Element>>> _rows;
-
-	bool _first_init;
+	util::WeakReference<Window> _gui;
+	std::string _title;
+	Rectangle _rect;
+	Flags _flags;
 };
+
 } /* namespace euler::gui */
 
-
 #endif /* EULER_GUI_WIDGET_H */
-
