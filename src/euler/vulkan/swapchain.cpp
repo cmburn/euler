@@ -47,9 +47,6 @@ euler::vulkan::Swapchain::SwapchainImage::SwapchainImage(vk::Image &&vk_image,
     , framebuffer(nullptr)
     , fence(nullptr)
     , image_in_flight(nullptr)
-    , command_buffer(nullptr)
-    , db_command_buffer(nullptr)
-    , compute_command_buffer(nullptr)
 {
 }
 

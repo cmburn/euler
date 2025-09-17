@@ -137,7 +137,8 @@ vk::raii::Device
 euler::vulkan::Renderer::select_device()
 {
 	static constexpr std::array exts = {
-		"VK_KHR_swapchain",
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+		VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
 	};
 	static constexpr float priority = 1.0f;
 	const auto &pdev = _physical_device.physical_device();

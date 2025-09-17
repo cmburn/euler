@@ -98,10 +98,10 @@ euler::vulkan::Surface::start_frame(const util::Color clear)
 		.clearValueCount = static_cast<uint32_t>(clear_values.size()),
 		.pClearValues = clear_values.data(),
 	};
-	si.command_buffer.beginRenderPass(render_pass_info,
+	si.command_buffer.begin_render_pass(render_pass_info,
 	    vk::SubpassContents::eInline);
-	si.compute_command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute,
-	    _sprite_batch_pipe->compute_pipeline());
+	si.compute_command_buffer.bind_pipeline(vk::PipelineBindPoint::eCompute,
+	    _sprite_batch_pipe);
 }
 
 void
@@ -113,7 +113,7 @@ euler::vulkan::Surface::end_frame()
 	auto &ldev = renderer()->device();
 	auto &dev = ldev.device();
 	auto &si = _swapchain._images[_image_index];
-	si.command_buffer.endRenderPass();
+	si.command_buffer.end_render_pass();
 	cf.descriptor_buffer.end_frame(si.db_command_buffer);
 	cf.descriptor_buffer.record_compute_pipeline_barrier(
 	    si.db_command_buffer);
@@ -124,9 +124,9 @@ euler::vulkan::Surface::end_frame()
 	si.compute_command_buffer.end();
 	dev.resetFences({ 1, &*cf.in_flight });
 	std::array cmd_buffers = {
-		*si.db_command_buffer,
-		*si.compute_command_buffer,
-		*si.command_buffer,
+		*si.db_command_buffer.command_buffer(),
+		*si.compute_command_buffer.command_buffer(),
+		*si.command_buffer.command_buffer(),
 	};
 	static constexpr std::array<vk::PipelineStageFlags, 1> WAIT_STAGES = {
 		vk::PipelineStageFlagBits::eColorAttachmentOutput,
@@ -141,9 +141,9 @@ euler::vulkan::Surface::end_frame()
 		.pSignalSemaphores = &*cf.render_complete,
 	};
 	renderer()->device().queue().submit({ 1, &submit_info }, *cf.in_flight);
-	auto present_wait = gui_render();
+	const auto present_wait = gui_render();
 	vk::Result present_result;
-	vk::PresentInfoKHR present_info {
+	const vk::PresentInfoKHR present_info {
 		.waitSemaphoreCount = 1,
 		.pWaitSemaphores = &*present_wait,
 		.swapchainCount = 1,
@@ -221,13 +221,14 @@ euler::vulkan::Surface::flush_sprite_batch()
 	/* TODO */
 	(void)si;
 	const std::array writes = {
-		vk::WriteDescriptorSet {},
+		vk::WriteDescriptorSet {
+
+		},
 	};
-	// si.compute_command_buffer.pushDescriptorSetKHR(
-	//     vk::PipelineBindPoint::eCompute, _sprite_batch_pipe->layout(), 0,
-	//     writes)
-	si.compute_command_buffer.push_descriptor_set(_sprite_batch_pipe,
-	    writes);
+
+	auto &cb = si.compute_command_buffer;
+
+	cb.push_descriptor_set(_sprite_batch_pipe, writes);
 }
 
 void

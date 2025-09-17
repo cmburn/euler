@@ -11,3 +11,5 @@ A minimum of three threads is required. One for SDL, one for Vulkan, and one
 for the mRuby interpreter.
 
 The engine should be fully thread-safe, anything else is a bug.
+
+Each additional game state will require a thread of its own.

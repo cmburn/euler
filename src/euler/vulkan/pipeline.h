@@ -17,24 +17,16 @@ public:
 		uint32_t draw_count;
 	};
 
-	vk::raii::Pipeline &
-	compute_pipeline()
-	{
-		return _pipelines[0];
-	}
+	enum class PipelineType : bool { Graphics, Compute };
 
-	const vk::raii::Pipeline &
-	compute_pipeline() const
-	{
-		return _pipelines[0];
-	}
+	virtual PipelineType pipeline_type() const = 0;
 
 	const vk::raii::PipelineLayout &layout() const;
 	vk::raii::PipelineLayout &layout();
 
 protected:
 	Pipeline();
-	std::array<vk::raii::Pipeline, 4> _pipelines;
+	vk::raii::Pipeline _pipeline;
 };
 
 } /* namespace euler::vulkan */

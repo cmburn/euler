@@ -6,9 +6,14 @@
 #include "euler/vulkan/pipeline.h"
 
 namespace euler::vulkan {
-class ComputePipeline final : public Pipeline { };
+class ComputePipeline final : public Pipeline {
+public:
+	PipelineType
+	pipeline_type() const override
+	{
+		return PipelineType::Compute;
+	}
+};
 } /* namespace euler::vulkan */
 
-
 #endif /* EULER_VULKAN_COMPUTE_PIPELINE_H */
-
