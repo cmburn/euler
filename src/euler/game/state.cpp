@@ -423,9 +423,9 @@ euler::game::State::update(int &exit_code)
 	assert(util::is_main_thread());
 	_last_tick = _tick;
 	_tick = SDL_GetTicks();
-	const auto gc_idx = mrb_gc_arena_save(_mrb);
 	SDL_Event e;
 	while (SDL_PollEvent(&e)) {
+		const auto gc_idx = mrb_gc_arena_save(_mrb);
 		_log->debug("Received event {}", e.type);
 		if (e.type == SDL_EVENT_QUIT) {
 			_log->info("Received quit event, exiting loop");
