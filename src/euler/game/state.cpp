@@ -425,19 +425,19 @@ euler::game::State::update(int &exit_code)
 	_tick = SDL_GetTicks();
 	const auto gc_idx = mrb_gc_arena_save(_mrb);
 	SDL_Event e;
-	if (!SDL_PollEvent(&e))
-		return true;
-	_log->debug("Received event {}", e.type);
-	if (e.type == SDL_EVENT_QUIT) {
-		_log->info("Received quit event, exiting loop");
-		exit_code = 0;
-		return false;
+	while (SDL_PollEvent(&e)) {
+		_log->debug("Received event {}", e.type);
+		if (e.type == SDL_EVENT_QUIT) {
+			_log->info("Received quit event, exiting loop");
+			exit_code = 0;
+			return false;
+		}
+		if (_methods.input && !app_input(e)) return false;
+		assert(_methods.update);
+		if (!app_update(_system->dt())) return false;
+		if (_methods.draw && !app_draw()) return false;
+		mrb_gc_arena_restore(_mrb, gc_idx);
 	}
-	if (_methods.input && !app_input(e)) return false;
-	assert(_methods.update);
-	if (!app_update(_system->dt())) return false;
-	if (_methods.draw && !app_draw()) return false;
-	mrb_gc_arena_restore(_mrb, gc_idx);
 	return true;
 }
 
