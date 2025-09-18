@@ -126,6 +126,7 @@ euler::game::State::app_update(const float dt)
 {
 	assert(_methods.update);
 	const auto arg = mrb_float_value(_mrb, dt);
+	mrb_gc_register(_mrb, arg);
 	mrb_funcall_id(_mrb, _self_value, MRB_SYM(update), 1, arg);
 	if (_mrb->exc != nullptr) {
 		_log->error("Exception in update: {}",
@@ -423,9 +424,9 @@ euler::game::State::update(int &exit_code)
 	assert(util::is_main_thread());
 	_last_tick = _tick;
 	_tick = SDL_GetTicks();
+	const auto gc_idx = mrb_gc_arena_save(_mrb);
 	SDL_Event e;
 	while (SDL_PollEvent(&e)) {
-		const auto gc_idx = mrb_gc_arena_save(_mrb);
 		_log->debug("Received event {}", e.type);
 		if (e.type == SDL_EVENT_QUIT) {
 			_log->info("Received quit event, exiting loop");
@@ -433,11 +434,11 @@ euler::game::State::update(int &exit_code)
 			return false;
 		}
 		if (_methods.input && !app_input(e)) return false;
-		assert(_methods.update);
-		if (!app_update(_system->dt())) return false;
-		if (_methods.draw && !app_draw()) return false;
-		mrb_gc_arena_restore(_mrb, gc_idx);
 	}
+	assert(_methods.update);
+	if (!app_update(_system->dt())) return false;
+	mrb_gc_arena_restore(_mrb, gc_idx);
+	if (_methods.draw && !app_draw()) return false;
 	return true;
 }
 

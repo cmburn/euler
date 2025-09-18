@@ -86,6 +86,7 @@ public:
 		struct {
 			RClass *module = nullptr;
 			RClass *state = nullptr;
+			RClass *system = nullptr;
 			RClass *event = nullptr;
 			RClass *display_event = nullptr;
 			RClass *window_event = nullptr;
@@ -190,6 +191,12 @@ public:
 		auto lk = std::unique_lock(_mrb_mutex, std::try_to_lock);
 		if (lk.owns_lock()) return lk;
 		return std::nullopt;
+	}
+
+	util::Reference<System>
+	system() const
+	{
+		return _system;
 	}
 
 
