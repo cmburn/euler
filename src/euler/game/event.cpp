@@ -872,7 +872,12 @@ euler::game::sdl_event_to_mrb(util::Reference<State> state,
 	case SDL_EVENT_WINDOW_LEAVE_FULLSCREEN:
 	case SDL_EVENT_WINDOW_DESTROYED: [[fallthrough]];
 	case SDL_EVENT_WINDOW_HDR_STATE_CHANGED:
-		COMMON_INIT(window);
+		do {
+			value = mrb_obj_new(mrb, mod.window_event, 0, nullptr);
+			assert(!mrb_nil_p(value));
+			SET_INT_IV(timestamp, common.timestamp);
+			mrb_iv_set(mrb, value, MRB_IVSYM(type), type_val);
+		} while (0);
 		SET_INT_IV(window_id, window.windowID);
 		switch (event.type) {
 		case SDL_EVENT_WINDOW_MOVED:
@@ -1226,5 +1231,4 @@ void
 euler::game::init_game_event(util::Reference<State> state)
 {
 	(void)state;
-
 }

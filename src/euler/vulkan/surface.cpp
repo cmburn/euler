@@ -6,7 +6,6 @@
 
 euler::vulkan::Surface::Surface()
     : _surface(nullptr)
-    , _swapchain(util::Reference(this))
 {
 }
 
@@ -188,14 +187,15 @@ euler::vulkan::Surface::flush_sprite_batch()
 	    = static_cast<void *>(_draw_commands.data());
 	const auto cmd_size = sizeof(decltype(_draw_commands)::value_type)
 	    * _draw_commands.size();
-	auto [cmd_inst, cmd_offset] = db.copy_data({
+	[[maybe_unused]] auto [cmd_inst, cmd_offset] = db.copy_data({
 	    static_cast<const uint8_t *>(draw_command_data),
 	    cmd_size,
 	});
-	const auto draw_instance_size
+	[[maybe_unused]] const auto draw_instance_size
 	    = sizeof(decltype(_draw_instances)::value_type)
 	    * _draw_instances.size();
-	auto [draw_inst, draw_offset] = db.reserve_space(cmd_size);
+	[[maybe_unused]] auto [draw_inst, draw_offset]
+	    = db.reserve_space(cmd_size);
 	// const std::array buffer_info = {
 	// 	vk::DescriptorBufferInfo {
 	// 	    .buffer = *cmd_inst,
@@ -227,7 +227,6 @@ euler::vulkan::Surface::flush_sprite_batch()
 	};
 
 	auto &cb = si.compute_command_buffer;
-
 	cb.push_descriptor_set(_sprite_batch_pipe, writes);
 }
 

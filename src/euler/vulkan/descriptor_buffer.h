@@ -10,7 +10,6 @@
 
 #include "euler/util/object.h"
 #include "euler/vulkan/buffer.h"
-#include "euler/vulkan/common.h"
 #include "euler/vulkan/command_buffer.h"
 
 namespace euler::vulkan {
@@ -54,7 +53,7 @@ private:
 		uint32_t queue_family,
 		vk::PipelineStageFlags src_stage,
 		vk::PipelineStageFlags dst_stage,
-		vk::raii::CommandBuffer &buf
+		CommandBuffer &buf
 		);
 	std::vector<InternalBuffer> _internal_buffers;
 	// vk::raii::CommandBuffer _copy_buffer;

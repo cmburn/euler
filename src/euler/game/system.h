@@ -17,7 +17,7 @@ class State;
 class System final : public util::Object {
 	friend class State;
 public:
-	explicit System(const util::Reference<State> &state = nullptr);
+	System(const util::Reference<State> &state = nullptr);
 	util::Reference<State> state() const;
 
 	[[nodiscard]] float

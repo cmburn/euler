@@ -139,7 +139,10 @@ euler::game::State::app_update(const float dt)
 bool
 euler::game::State::app_input(const SDL_Event &event)
 {
+	if (static_cast<SDL_EventType>(event.type) == SDL_EVENT_QUIT)
+		return false;
 	try {
+#if 0
 		assert(_methods.input);
 		const auto arg = sdl_event_to_mrb(util::Reference(this), event);
 		mrb_funcall_id(_mrb, _self_value, MRB_SYM(input), 1, arg);
@@ -149,6 +152,7 @@ euler::game::State::app_input(const SDL_Event &event)
 			_mrb->exc = nullptr;
 			return false;
 		}
+#endif
 		return true;
 	} catch (const std::exception &e) {
 		_log->error("Unhandled exception in input: {}", e.what());
@@ -384,6 +388,7 @@ euler::game::State::available_threads() const
 bool
 euler::game::State::initialize()
 {
+	_system = util::make_reference<System>(util::Reference(this));
 	log()->info("Initializing state with {} threads", _config.num_threads);
 	if (!load_core()) return false;
 	if (!load_entry(_config.entry_file)) return false;
@@ -420,11 +425,8 @@ euler::game::State::update(int &exit_code)
 	_tick = SDL_GetTicks();
 	const auto gc_idx = mrb_gc_arena_save(_mrb);
 	SDL_Event e;
-	if (!SDL_WaitEvent(&e)) {
-		_log->error("Failed to wait for event: {}", SDL_GetError());
-		exit_code = EXIT_FAILURE;
-		return false;
-	}
+	if (!SDL_PollEvent(&e))
+		return true;
 	_log->debug("Received event {}", e.type);
 	if (e.type == SDL_EVENT_QUIT) {
 		_log->info("Received quit event, exiting loop");

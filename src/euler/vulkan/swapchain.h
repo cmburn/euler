@@ -19,7 +19,8 @@ class Swapchain final {
 
 public:
 	static constexpr uint32_t FRAMES_IN_FLIGHT = 2;
-	Swapchain(const util::Reference<Surface> &surface);
+	Swapchain();
+	void set_surface(const util::Reference<Surface> &surface);
 
 	const vk::raii::SwapchainKHR &
 	swapchain() const

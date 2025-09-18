@@ -5,13 +5,19 @@
 #include "euler/vulkan/renderer.h"
 #include "euler/vulkan/surface.h"
 
-euler::vulkan::Swapchain::Swapchain(const util::Reference<Surface> &surface)
+euler::vulkan::Swapchain::Swapchain()
     : _swapchain(nullptr)
     , _render_pass(nullptr)
     , _mid_frame_render_pass(nullptr)
     , _external_target_render_pass(nullptr)
-    , _surface(surface)
+    , _surface(nullptr)
 {
+}
+
+void
+euler::vulkan::Swapchain::set_surface(const util::Reference<Surface> &surface)
+{
+	_surface = surface.weaken();
 }
 
 euler::util::Reference<euler::vulkan::Surface>

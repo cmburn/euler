@@ -8,6 +8,7 @@ class Game < Euler::Game::State
 
   def update(dt)
     @tick += 1
+    log.info("#{@tick}")
     if @tick % 1000 == 0
       log.info "FPS: #{system.fps}"
     end
@@ -18,13 +19,13 @@ class Game < Euler::Game::State
   end
 
   def draw
-    gui.window("Title", WINDOW_RECT, WINDOW_FLAGS) do |win|
-      win.row(:dynamic, height: 30, columns: 2) do
-        gui.button(label: 'Press me!') do
-          log.info "Button pressed!"
-        end
-      end
-    end
+    # gui.window("Title", WINDOW_RECT, WINDOW_FLAGS) do |win|
+    #   win.row(:dynamic, height: 30, columns: 2) do
+    #     gui.button(label: 'Press me!') do
+    #       log.info "Button pressed!"
+    #     end
+    #   end
+    # end
   end
 
   def hello

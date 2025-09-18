@@ -13,7 +13,6 @@
 #include "euler/util/logger.h"
 #include "euler/util/object.h"
 #include "euler/util/version.h"
-#include "euler/vulkan/common.h"
 #include "euler/vulkan/device.h"
 #include "euler/vulkan/physical_device.h"
 #include "euler/vulkan/surface.h"
