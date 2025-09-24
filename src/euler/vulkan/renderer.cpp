@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: ISC */
 
 #include "euler/vulkan/renderer.h"
+
 #include "SDL3/SDL_vulkan.h"
 
 namespace util = euler::util;
@@ -30,9 +31,6 @@ instance_extensions(const util::Reference<util::Logger> &log)
 	vec.reserve(count);
 	for (uint32_t i = 0; i < count; i++) vec.emplace_back(exts[i]);
 	initialized = true;
-	if (vec.empty()) return vec;
-	log->info("Available SDL Vulkan instance extensions:");
-	for (const auto s : vec) log->info("\t- %s", s);
 	return vec;
 }
 
@@ -50,13 +48,13 @@ make_instance(const util::Reference<util::Logger> &log,
 		.applicationVersion = config.version.to_vulkan(),
 		.pEngineName = "euler",
 		.engineVersion = util::version().to_vulkan(),
-		.apiVersion = vk::ApiVersion12,
+		.apiVersion = vk::ApiVersion14,
 	};
 	static constexpr const char *validation_layers[] = {
 		"VK_LAYER_KHRONOS_validation",
 	};
 	auto sdl_exts = instance_extensions(log);
-	sdl_exts.push_back("VK_KHR_push_descriptor");
+	// sdl_exts.push_back("VK_KHR_push_descriptor");
 
 	const vk::InstanceCreateInfo create_info {
 		.pApplicationInfo = &app_info,
@@ -66,19 +64,22 @@ make_instance(const util::Reference<util::Logger> &log,
 		.ppEnabledExtensionNames = sdl_exts.data(),
 	};
 
-	return vk::raii::Instance(context, create_info);
+	auto inst = vk::raii::Instance(context, create_info);
+	return inst;
 }
 
-euler::vulkan::Renderer::Renderer(const util::Reference<Surface> &surface,
-    const Config &config)
-    : _instance(make_instance(surface->log(), _context, config))
+euler::vulkan::Renderer::Config
+euler::vulkan::Renderer::default_config()
+{
+	return Config {};
+}
+
+euler::vulkan::Renderer::Renderer(const Config &config)
+    : _instance(nullptr)
     , _config(config)
-    , _surface(surface)
-    , _log(surface->log())
-    , _physical_device(create_physical_device())
-    , _device(create_device())
 {
 }
+
 std::optional<euler::vulkan::Renderer::ShaderData>
 euler::vulkan::Renderer::shader_data(std::string_view key)
 {
@@ -86,6 +87,34 @@ euler::vulkan::Renderer::shader_data(std::string_view key)
 	if (builtin.has_value()) return *builtin;
 	if (!_runtime_shaders.contains(std::string(key))) return std::nullopt;
 	return _runtime_shaders.at(std::string(key));
+}
+
+std::optional<vk::raii::ShaderModule>
+euler::vulkan::Renderer::load_shader(std::string_view key)
+{
+	auto data = shader_data(key);
+	if (!data.has_value()) return std::nullopt;
+	const vk::ShaderModuleCreateInfo ci = {
+		.codeSize = data->size(),
+		.pCode = reinterpret_cast<const uint32_t *>(data->data()),
+	};
+	return _device.device().createShaderModule(ci);
+}
+
+void
+euler::vulkan::Renderer::initialize(const util::Reference<Surface> &surface)
+{
+	_context = make_context();
+	_instance = make_instance(surface->log(), _context, config());
+	_surface = surface;
+	_log = surface->log();
+	_physical_device = create_physical_device();
+	_log->info("Using queue family {} for graphics",
+	    _physical_device.graphics_family());
+	_log->info("Using queue family {} for compute",
+	    _physical_device.compute_family());
+	std::construct_at(&_device, create_device());
+	surface->initialize_vulkan(util::Reference(this));
 }
 
 euler::vulkan::Renderer::~Renderer() { renderer_semaphore.release(); }
@@ -103,7 +132,7 @@ euler::vulkan::Renderer::select_physical_device()
 
 	for (const auto &d : devices) {
 		auto properties = d.getProperties();
-		_log->info("Found device with ID %d (%s)", properties.deviceID,
+		_log->info("Found device with ID {} ({})", properties.deviceID,
 		    properties.deviceName.data());
 		if (_config.preferred_gpu.has_value()
 		    && properties.deviceID == _config.preferred_gpu.value()) {
@@ -119,7 +148,7 @@ euler::vulkan::Renderer::select_physical_device()
 	if (selected_device.has_value()) return selected_device.value();
 	if (_config.preferred_gpu.has_value()) {
 		_log->info(
-		    "Unable to find user-specified graphics device with ID %d",
+		    "Unable to find user-specified graphics device with ID {}",
 		    _config.preferred_gpu.value());
 	}
 	if (discrete_device.has_value()) return discrete_device.value();
@@ -130,6 +159,7 @@ euler::vulkan::PhysicalDevice
 euler::vulkan::Renderer::create_physical_device()
 {
 	auto pdev = select_physical_device();
+	log()->info("Using device: {}", pdev.getProperties().deviceName.data());
 	return { this, std::move(pdev) };
 }
 
@@ -137,52 +167,76 @@ vk::raii::Device
 euler::vulkan::Renderer::select_device()
 {
 	static constexpr std::array exts = {
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-		VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
+		vk::KHRCreateRenderpass2ExtensionName,
+		vk::KHRPushDescriptorExtensionName,
+		vk::KHRSpirv14ExtensionName,
+		vk::KHRSwapchainExtensionName,
+		vk::KHRSynchronization2ExtensionName,
 	};
+
 	static constexpr float priority = 1.0f;
 	const auto &pdev = _physical_device.physical_device();
 	auto props = pdev.getQueueFamilyProperties();
 	std::array queue_info = {
 		(vk::DeviceQueueCreateInfo) {
-		    .queueFamilyIndex = _graphics_queue_index,
+		    .queueFamilyIndex = _physical_device.graphics_family(),
 		    .queueCount = 1,
 		    .pQueuePriorities = &priority,
 		},
 		(vk::DeviceQueueCreateInfo) {
-		    .queueFamilyIndex = _present_queue_index,
+		    .queueFamilyIndex = _physical_device.compute_family(),
 		    .queueCount = 1,
 		    .pQueuePriorities = &priority,
 		},
-#ifdef EULER_ENABLE_COMPUTE_QUEUE
-		(vk::DeviceQueueCreateInfo) {
-		    .queueFamilyIndex = _compute_queue_index,
-		    .queueCount = 1,
-		    .pQueuePriorities = &priority,
-		},
-#endif
 	};
 
-	static constexpr vk::PhysicalDeviceFeatures features = {};
+	uint32_t queue_size = queue_info.size();
+	if (_physical_device.compute_family() == PhysicalDevice::NO_QUEUE)
+		--queue_size;
+
+	// static const vk::StructureChain<vk::PhysicalDeviceFeatures2,
+	//     vk::PhysicalDeviceVulkan12Features,
+	//     vk::PhysicalDeviceDynamicRenderingFeatures,
+	//     vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>
+	//     FEATURE_CHAIN = {
+	// 	    {},
+	// 	    {},
+	// 	    {},
+	// 	    { .extendedDynamicState = true },
+	//     };
+
+	static const vk::StructureChain<vk::PhysicalDeviceFeatures2,
+	    vk::PhysicalDeviceVulkan13Features,
+	    vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>
+	    FEATURE_CHAIN = {
+		    {},
+		    { .dynamicRendering = true },
+		    { .extendedDynamicState = true },
+	    };
 
 	const vk::DeviceCreateInfo create_info = {
-		.queueCreateInfoCount
-		= static_cast<uint32_t>(queue_info.size()),
+		.pNext = &FEATURE_CHAIN.get<vk::PhysicalDeviceFeatures2>(),
+		.queueCreateInfoCount = queue_size,
 		.pQueueCreateInfos = queue_info.data(),
 		.enabledLayerCount = 0,
 		.ppEnabledLayerNames = nullptr,
 		.enabledExtensionCount = static_cast<uint32_t>(exts.size()),
 		.ppEnabledExtensionNames = exts.data(),
-		.pEnabledFeatures = &features,
 	};
 
-	return _physical_device.physical_device().createDevice(create_info);
+	return pdev.createDevice(create_info);
 }
 
 euler::vulkan::Device
 euler::vulkan::Renderer::create_device()
 {
 	return Device { util::Reference(this), select_device() };
+}
+
+vk::raii::Context
+euler::vulkan::Renderer::make_context()
+{
+	return vk::raii::Context();
 }
 
 const uint8_t *

@@ -14,7 +14,7 @@ set(EULER_COMPILE_OPTIONS
         -Wno-unused-function
 )
 
-add_subdirectory(euler/game)
+add_subdirectory(euler/app)
 add_subdirectory(euler/graphics)
 add_subdirectory(euler/gui)
 add_subdirectory(euler/util)

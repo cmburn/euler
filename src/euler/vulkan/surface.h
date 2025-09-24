@@ -3,6 +3,8 @@
 #ifndef EULER_VULKAN_SURFACE_H
 #define EULER_VULKAN_SURFACE_H
 
+#include <functional>
+
 #include <SDL3/SDL.h>
 #include <glm/glm.hpp>
 #include <vulkan/vulkan_raii.hpp>
@@ -43,7 +45,7 @@ public:
 		return _surface;
 	}
 
-	void initialize_vulkan(const util::Reference<Renderer> &renderer);
+	void initialize_vulkan(const util::Reference<Renderer> &r);
 	void start_frame(util::Color clear = util::BLACK);
 	void end_frame();
 	void flush_sprite_batch();
@@ -72,19 +74,21 @@ public:
 	{
 		return _current_frame;
 	}
+
 	uint32_t
 	image_index() const
 	{
 		return _image_index;
 	}
 
-	const vk::raii::Semaphore &render_finished() const
+	const vk::raii::Semaphore &
+	render_finished() const
 	{
 		return _swapchain.render_finished();
 	}
 
 	vk::raii::Semaphore &
-		render_finished()
+	render_finished()
 	{
 		return _swapchain.render_finished();
 	}
@@ -92,16 +96,26 @@ public:
 	void draw(const std::function<void()> &fn, util::Color = util::BLACK);
 
 	vk::SurfaceCapabilitiesKHR capabilities() const;
+
 	const vk::SurfaceFormatKHR &
 	format() const
 	{
 		return _format;
 	}
+
+	void
+	set_format(const vk::SurfaceFormatKHR &format)
+	{
+		_format = format;
+	}
+
 	vk::Extent2D
 	extent() const
 	{
 		return { width(), height() };
 	}
+
+	std::vector<std::string> instance_extensions() const;
 
 	~Surface() override = default;
 
@@ -115,9 +129,7 @@ public:
 		uint32_t texture_index;
 	};
 
-	struct DrawInstance {
-
-	};
+	struct DrawInstance { };
 
 private:
 	void rebuild_swapchain();
@@ -129,13 +141,17 @@ private:
 		util::Reference<Camera> camera;
 		glm::mat4 projection;
 	};
-	vk::PresentModeKHR present_mode() const;
+
+	[[nodiscard]] vk::PresentModeKHR present_mode() const;
 	vk::raii::SurfaceKHR _surface;
 	Swapchain _swapchain;
 	util::WeakReference<Renderer> _renderer;
 	std::vector<CameraInfo> _cameras;
 	util::Reference<Pipeline> _sprite_batch_pipe;
-	vk::SurfaceFormatKHR _format;
+	vk::SurfaceFormatKHR _format = {
+		.format = vk::Format::eB8G8R8A8Srgb,
+		.colorSpace = vk::ColorSpaceKHR::eSrgbNonlinear,
+	};
 	std::vector<DrawCommand> _draw_commands;
 	std::vector<DrawInstance> _draw_instances;
 

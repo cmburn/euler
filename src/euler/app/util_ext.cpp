@@ -1,25 +1,25 @@
 /* SPDX-License-Identifier: ISC */
 
-#include "euler/game/util_ext.h"
+#include "euler/app/util_ext.h"
 
-#include "euler/game/ext.h"
+#include "euler/app/ext.h"
 
 #include <mruby/array.h>
 #include <mruby/string.h>
 
 using namespace euler::util;
-using namespace euler::game;
-using Modules = euler::game::State::Modules;
+using namespace euler::app;
+using Modules = euler::app::State::Modules;
 
-extern const mrb_data_type euler::game::LOGGER_TYPE
+extern const mrb_data_type euler::app::LOGGER_TYPE
     = MAKE_REFERENCE_TYPE(euler::util::Logger);
-extern const mrb_data_type euler::game::LOGGER_SINK_TYPE
+extern const mrb_data_type euler::app::LOGGER_SINK_TYPE
     = MAKE_DATA_TYPE(euler::util::Logger::Sink);
-extern const mrb_data_type euler::game::STORAGE_TYPE
+extern const mrb_data_type euler::app::STORAGE_TYPE
     = MAKE_REFERENCE_TYPE(euler::util::Storage);
-extern const mrb_data_type euler::game::CONFIG_TYPE
+extern const mrb_data_type euler::app::CONFIG_TYPE
     = MAKE_DATA_TYPE(euler::util::Config);
-extern const mrb_data_type euler::game::VERSION_TYPE
+extern const mrb_data_type euler::app::VERSION_TYPE
     = MAKE_DATA_TYPE(euler::util::Version);
 
 /* TODO: Config and Version classes are both non-object structs, need to be
@@ -231,7 +231,7 @@ init_storage(mrb_state *mrb, Modules &mod)
 }
 
 void
-euler::game::init_util(Reference<State> state)
+euler::app::init_util(Reference<State> state)
 {
 	state->log()->info("Initializing Euler::Util...");
 	auto mrb = state->mrb();

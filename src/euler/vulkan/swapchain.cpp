@@ -18,6 +18,7 @@ void
 euler::vulkan::Swapchain::set_surface(const util::Reference<Surface> &surface)
 {
 	_surface = surface.weaken();
+	rebuild();
 }
 
 euler::util::Reference<euler::vulkan::Surface>
@@ -136,13 +137,13 @@ euler::vulkan::Swapchain::rebuild_images()
 	assert(images.size() == supported_image_count());
 	for (auto &&image : images)
 		_images.emplace_back(std::move(image), surface());
-	if (surface()->enable_msaa()) {
-		_msaa_image = Image {
-			surface(),
-			vk::ImageAspectFlagBits::eColor,
-			vk::ImageUsageFlagBits::eColorAttachment,
-		};
-	}
+	// if (surface()->enable_msaa()) {
+	// 	_msaa_image = Image {
+	// 		surface(),
+	// 		vk::ImageAspectFlagBits::eColor,
+	// 		vk::ImageUsageFlagBits::eColorAttachment,
+	// 	};
+	// }
 }
 void
 euler::vulkan::Swapchain::rebuild_render_passes()

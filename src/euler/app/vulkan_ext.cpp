@@ -1,9 +1,9 @@
 /* SPDX-License-Identifier: ISC */
 
-#include "euler/game/vulkan_ext.h"
+#include "euler/app/vulkan_ext.h"
 
 void
-euler::game::init_vulkan(util::Reference<State> state)
+euler::app::init_vulkan(util::Reference<State> state)
 {
 	state->log()->info("Initializing Euler::Vulkan...");
 	auto mrb = state->mrb();

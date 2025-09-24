@@ -20,6 +20,7 @@ class Swapchain final {
 public:
 	static constexpr uint32_t FRAMES_IN_FLIGHT = 2;
 	Swapchain();
+
 	void set_surface(const util::Reference<Surface> &surface);
 
 	const vk::raii::SwapchainKHR &
@@ -71,15 +72,17 @@ private:
 	void rebuild_images();
 	void rebuild_render_passes();
 	void rebuild_pipelines();
+	vk::PresentModeKHR select_present_mode() const;
 
 	uint32_t _rebuild_count = 0;
 	vk::raii::SwapchainKHR _swapchain;
 	std::vector<SwapchainImage> _images;
 	std::vector<Frame> _frames;
-	std::optional<Image> _msaa_image;
+	// std::optional<Image> _msaa_image;
 	vk::raii::RenderPass _render_pass;
 	vk::raii::RenderPass _mid_frame_render_pass;
 	vk::raii::RenderPass _external_target_render_pass;
+
 
 	util::WeakReference<Surface> _surface;
 };

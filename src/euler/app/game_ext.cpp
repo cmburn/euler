@@ -1,16 +1,17 @@
 /* SPDX-License-Identifier: ISC */
 
-#include "euler/game/game_ext.h"
-#include "../../../extern/mruby/include/mruby/class.h"
-#include "euler/game/util_ext.h"
+#include "euler/app/game_ext.h"
+#include "euler/app/util_ext.h"
 
-using namespace euler::game;
+#include <mruby/class.h>
+
+using namespace euler::app;
 using Modules = State::Modules;
 
-extern const mrb_data_type euler::game::STATE_TYPE
-    = MAKE_REFERENCE_TYPE(euler::game::State);
-extern const mrb_data_type SYSTEM_TYPE
-    = MAKE_REFERENCE_TYPE(euler::game::System);
+extern const mrb_data_type euler::app::STATE_TYPE
+    = MAKE_REFERENCE_TYPE(euler::app::State);
+extern const mrb_data_type euler::app::SYSTEM_TYPE
+    = MAKE_REFERENCE_TYPE(euler::app::System);
 
 static constexpr auto state_log = ATTR_READER(State, STATE_TYPE, LOGGER_TYPE,
     mod.util.logger.klass, self->log());
@@ -18,6 +19,16 @@ static constexpr auto state_user_storage = ATTR_READER(State, STATE_TYPE,
     STORAGE_TYPE, mod.util.storage, self->user_storage());
 static constexpr auto state_title_storage = ATTR_READER(State, STATE_TYPE,
     STORAGE_TYPE, mod.util.storage, self->title_storage());
+static constexpr auto state_system = ATTR_READER(State, STATE_TYPE, SYSTEM_TYPE,
+    mod.game.system, self->system());
+#define WRAP(ARG) mrb_float_value(mrb, ARG)
+static constexpr auto system_fps = [](mrb_state *mrb,
+				       const mrb_value self_value) {
+	const auto self = unwrap_data<System>(mrb, self_value, &SYSTEM_TYPE);
+	auto ans = (self->fps());
+	return mrb_float_value(mrb, ans);
+};
+#undef WRAP
 
 static mrb_value
 state_allocate(mrb_state *mrb, mrb_value self)
@@ -29,23 +40,22 @@ state_allocate(mrb_state *mrb, mrb_value self)
 	return mrb_obj_value(obj);
 }
 
-static mrb_value
-system_fps(mrb_state *, const mrb_value self)
-{
-	const auto system = euler::util::Reference<System>::unwrap(self);
-	assert(system != nullptr);
-	return mrb_fixnum_value(system->fps());
-}
+// static mrb_value
+// system_fps(mrb_state *state, const mrb_value self)
+// {
+// 	const auto system = euler::util::Reference<System>::unwrap(self);
+// 	(void)state;
+// 	assert(system != nullptr);
+// 	return mrb_fixnum_value(system->fps());
+// }
 
-static mrb_value
-state_system(mrb_state *mrb, const mrb_value self)
+static void
+init_system(mrb_state *mrb, Modules &mod)
 {
-	const auto state = euler::util::Reference<State>::unwrap(self);
-	assert(state != nullptr);
-	auto system = state->system();
-	const auto obj = Data_Wrap_Struct(mrb, state->module().game.system,
-	    &SYSTEM_TYPE, system.wrap());
-	return mrb_obj_value(obj);
+	mod.game.system = mrb_define_class_under(mrb, mod.game.module, "System",
+	    mrb->object_class);
+	const auto system = mod.game.system;
+	mrb_define_method(mrb, system, "fps", system_fps, MRB_ARGS_NONE());
 }
 
 static void
@@ -64,15 +74,8 @@ init_state(mrb_state *mrb, Modules &mod)
 	    MRB_ARGS_NONE());
 }
 
-static void
-init_system(mrb_state *mrb, Modules &mod)
-{
-	mod.game.system = mrb_define_class_under(mrb, mod.game.module, "System",
-	    mrb->object_class);
-}
-
 void
-euler::game::init_game(util::Reference<State> state)
+euler::app::init_game(util::Reference<State> state)
 {
 	state->log()->info("Initializing Euler::Game...");
 	const auto mrb = state->mrb();

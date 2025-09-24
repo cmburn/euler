@@ -10,6 +10,7 @@
 namespace euler::vulkan {
 class Renderer;
 class Surface;
+class DescriptorBuffer;
 
 class Camera final : public util::Object {
 public:
@@ -47,15 +48,15 @@ public:
 
 	/* ReSharper disable once CppHidingFunction */
 	State state() const { return _state; }
+	void flush_ubo(DescriptorBuffer &buffer);
 	void set_state(State state);
 	void update_ubo(glm::mat4 &mat);
-	util::Reference<Surface> surface() const;
+	[[nodiscard]] util::Reference<Surface> surface() const;
 
 	Index index() const
 	{
 		return _index;
 	}
-
 
 private:
 	Spec _spec;

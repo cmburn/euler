@@ -2,6 +2,9 @@
 
 #include "euler/vulkan/surface.h"
 
+#include <SDL3/SDL_vulkan.h>
+#include <vk_mem_alloc.h>
+
 #include "euler/vulkan/renderer.h"
 
 euler::vulkan::Surface::Surface()
@@ -10,10 +13,17 @@ euler::vulkan::Surface::Surface()
 }
 
 void
-euler::vulkan::Surface::initialize_vulkan(
-    const util::Reference<Renderer> &renderer)
+euler::vulkan::Surface::initialize_vulkan(const util::Reference<Renderer> &r)
 {
-	_renderer = renderer.weaken();
+	_renderer = r.weaken();
+	VkSurfaceKHR surface = nullptr;
+	const auto instance = static_cast<VkInstance>(*r->instance());
+	if (!SDL_Vulkan_CreateSurface(window(), instance, nullptr, &surface)) {
+		auto err = std::format("Failed to create Vulkan surface: {}",
+		    SDL_GetError());
+		throw std::runtime_error(err);
+	}
+	_surface = vk::raii::SurfaceKHR(r->instance(), surface);
 }
 
 void
@@ -26,6 +36,7 @@ euler::vulkan::Surface::start_frame(const util::Color clear)
 	    != vk::Result::eSuccess) {
 		renderer()->log()->fatal("Failed to wait for image fence");
 	}
+
 	const vk::AcquireNextImageInfoKHR ani_info {
 		.swapchain = *_swapchain._swapchain,
 		.timeout = UINT64_MAX,
@@ -234,6 +245,7 @@ void
 euler::vulkan::Surface::flush_ubo_buffers(Swapchain::Frame &)
 {
 	/* TODO */
+	throw std::runtime_error("Not implemented");
 }
 
 euler::util::Reference<euler::vulkan::Renderer>
@@ -265,6 +277,7 @@ euler::vulkan::Surface::physical_device()
 {
 	return renderer()->physical_device();
 }
+
 bool
 euler::vulkan::Surface::enable_msaa() const
 {
@@ -303,7 +316,7 @@ euler::vulkan::Surface::increment_current_frame()
 vk::PresentModeKHR
 euler::vulkan::Surface::present_mode() const
 {
-	auto &pdev = physical_device().physical_device();
+	const auto &pdev = physical_device().physical_device();
 	for (const auto mode : pdev.getSurfacePresentModesKHR(_surface))
 		if (mode == renderer()->config().present_mode) return mode;
 	return vk::PresentModeKHR::eFifo;

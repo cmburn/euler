@@ -49,6 +49,8 @@ add_library(euler_vulkan STATIC
         texture.cpp
         texture.h
         ${CMAKE_CURRENT_BINARY_DIR}/renderer_blobs.cpp
+        vma_fwd.cpp
+        vma_fwd.h
 )
 
 add_library(euler_vulkan_vma STATIC vma.cpp)

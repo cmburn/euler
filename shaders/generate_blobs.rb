@@ -37,7 +37,7 @@ output = Pathname.new(ARGV[0])
 output.dirname.mkdir unless output.dirname.exist?
 glslc = begin
   path = ENV['GLSLC_EXE'] || MakeMakefile.find_executable('glslc')
-  raise 'Unable to find "glslc" executable' if path.nil?
+  raise 'Unable to find "glslc" executable' if path.nil? || path.empty?
   Pathname.new(path).expand_path
 end
 
@@ -50,13 +50,45 @@ unless glslc.executable?
   $stderr.puts "'#{glslc}' is not an executable"
 end
 
+slangc = begin
+  path = ENV['SLANGC_EXE'] || MakeMakefile.find_executable('slangc')
+  raise 'Unable to find "slangc" executable' if path.nil? || path.empty?
+  Pathname.new(path).expand_path
+end
+
+unless slangc.exist?
+  $stderr.puts "No such file or directory '#{slangc}'"
+  usage
+end
+
+unless slangc.executable?
+  $stderr.puts "'#{slangc}' is not an executable"
+end
+
+puts "Using glslc: #{glslc}"
+puts "Using slangc: #{slangc}"
+
 $shaders = {}
 $constants = {}
+  SLANGC_ARGS = %w[
+    -target spirv
+    -profile spirv_1_4
+    -emit-spirv-directly
+    -fvk-use-entrypoint-name
+    -entry vert_main
+    -entry frag_main
+  ].join(' ')
 
-def compile_shader(glslc, dir, file)
+def compile_shader(slangc, glslc, dir, file)
   Dir.chdir(dir) do
-    system("#{glslc} -g #{file}", exception: true)
-    file.open("rb").read
+    cmd = ''
+    if file.extname == '.slang'
+      cmd = "#{slangc} #{file} #{SLANGC_ARGS} -o #{dir}/a.spv"
+    else
+      cmd = "#{glslc} -g #{file}"
+    end
+    system(cmd, exception: true)
+    Pathname.new('a.spv').open('rb').read
   end
 end
 
@@ -66,7 +98,7 @@ def hex(str, i)
   "0x#{n.to_s(16).upcase.rjust(2, '0')}"
 end
 
-def compile_shaders(glslc, path)
+def compile_shaders(slangc, glslc, path)
   path = Pathname.new(path)
   raise "No such file or directory '#{path}'" unless path.exist?
   # name = constant_name(path)
@@ -75,7 +107,7 @@ def compile_shaders(glslc, path)
     path.children.each do |c|
       key = Pathname.new(c).relative_path_from(path).to_s
       ext = c.extname.downcase
-      next unless %w[.comp .vert .frag].any?(ext)
+      next unless %w[.comp .vert .frag .slang].any?(ext)
       c = c.expand_path
       const = constant_name(key)
       raise "Duplicate shaders found for entry '#{key}'" if $shaders.key?(key)
@@ -83,7 +115,7 @@ def compile_shaders(glslc, path)
       print "Compiling shader '#{key}' from path '#{c}'..."
       $shaders[key] = {
         constant: const,
-        data: compile_shader(glslc, dir, c)
+        data: compile_shader(slangc, glslc, dir, c)
       }
       $constants[const] = true
       puts " done"
@@ -96,7 +128,7 @@ raise "No such file or directory '#{input}'" unless input.exist?
 raise "'#{input}' is not a directory" unless input.directory?
 input.dirname.mkpath unless input.dirname.exist?
 
-compile_shaders(glslc, input)
+compile_shaders(slangc, glslc, input)
 
 sorted = $shaders.each_pair.sort_by do |pair|
   pair[1][:constant]

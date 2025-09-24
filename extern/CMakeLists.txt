@@ -6,7 +6,6 @@ add_subdirectory(SDL EXCLUDE_FROM_ALL)
 add_subdirectory(glm)
 add_subdirectory(physfs)
 add_subdirectory(nlohmann-json)
-add_subdirectory(libevent)
 add_subdirectory(VulkanMemoryAllocator)
 
 target_sources(physfs-static PRIVATE

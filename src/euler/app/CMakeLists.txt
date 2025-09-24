@@ -1,4 +1,4 @@
-add_library(euler_game STATIC
+add_library(euler_app STATIC
         ext.cpp
         ext.h
         event.cpp
@@ -9,8 +9,6 @@ add_library(euler_game STATIC
         graphics_ext.h
         gui_ext.cpp
         gui_ext.h
-        physics_ext.cpp
-        physics_ext.h
         state.cpp
         state.h
         system.cpp
@@ -23,24 +21,24 @@ add_library(euler_game STATIC
         window.h
 )
 
-target_link_libraries(euler_game PUBLIC
+target_link_libraries(euler_app PUBLIC
         euler_graphics
         euler_gui
         euler_util
         euler_vulkan
 )
 
-target_include_directories(euler_game PUBLIC
+target_include_directories(euler_app PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/../../../extern/mruby/build/host/include
 )
 
-target_link_libraries(euler_game PUBLIC
+target_link_libraries(euler_app PUBLIC
         ${MRUBY_LIBRARIES}
 )
 
-target_compile_definitions(euler_game PUBLIC
+target_compile_definitions(euler_app PUBLIC
         MRB_USE_CXX_ABI
         MRB_USE_CXX_EXCEPTION
 )
 
-target_compile_options(euler_game PRIVATE ${EULER_COMPILE_OPTIONS})
+target_compile_options(euler_app PRIVATE ${EULER_COMPILE_OPTIONS})

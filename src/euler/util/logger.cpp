@@ -141,6 +141,8 @@ euler::util::Logger::Logger(const std::string_view progname,
 {
 }
 
+euler::util::Logger::~Logger() { info("Closing logger for {}", progname()); }
+
 euler::util::Logger::Logger(const Logger &other,
     const std::optional<std::string_view> &subsystem)
 {
@@ -242,7 +244,8 @@ euler::util::Logger::format_message(const Severity level,
 	ss << color_for(message_color) << "] " << color_for(severity_color);
 	const auto padding = MAX_SEVERITY_LENGTH - sev_str.size();
 	for (size_t i = 0; i < padding; i++) ss << ' ';
-	ss << "[" << sev_str << color_for(message_color) << "]";
+	ss << color_for(message_color) << "[" << color_for(severity_color)
+	   << sev_str << color_for(message_color) << "]";
 	{
 		std::lock_guard lock(_progname_mutex);
 		ss << " [" << color_for(severity_color) << _progname
@@ -252,7 +255,7 @@ euler::util::Logger::format_message(const Severity level,
 		std::lock_guard lock(_subsystem_mutex);
 		ss << color_for(severity_color) << _subsystem;
 	}
-	ss << color_for(message_color) << "] - " << color_for(message_color)
+	ss << color_for(message_color) << "] -- " << color_for(message_color)
 	   << message << std::endl;
 	return ss.str();
 }

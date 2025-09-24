@@ -1,9 +1,9 @@
 /* SPDX-License-Identifier: ISC */
 
-#include "euler/game/graphics_ext.h"
+#include "euler/app/graphics_ext.h"
 
 void
-euler::game::init_graphics(util::Reference<State> state)
+euler::app::init_graphics(util::Reference<State> state)
 {
 	state->log()->info("Initializing Euler::Graphics...");
 	auto mrb = state->mrb();

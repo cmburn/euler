@@ -158,7 +158,9 @@ public:
 	    : _object(nullptr)
 	{
 	}
+
 	~Reference() { decrement(_object); }
+
 	explicit Reference(T *object)
 	    : _object(object)
 	{

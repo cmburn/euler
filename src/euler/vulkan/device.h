@@ -17,6 +17,8 @@ public:
 	Device(const util::Reference<Renderer> &renderer,
 	    vk::raii::Device &&device, bool graphics_device = true);
 
+	Device(std::nullptr_t = nullptr);
+
 	const vk::raii::Device &
 	device() const
 	{
@@ -29,10 +31,16 @@ public:
 		return _device;
 	}
 
-	PhysicalDevice &
+	const PhysicalDevice &
 	physical_device() const
 	{
-		return _physical_device;
+		return *_physical_device;
+	}
+
+	PhysicalDevice &
+	physical_device()
+	{
+		return *_physical_device;
 	}
 
 	vk::raii::Queue &
@@ -64,8 +72,9 @@ private:
 	vk::raii::CommandPool make_command_pool() const;
 
 	vk::raii::Device _device;
-	PhysicalDevice &_physical_device;
+	PhysicalDevice *_physical_device;
 	vk::raii::Queue _queue;
+	vk::raii::Queue _present_queue;
 	// vk::raii::Queue _load_queue;
 	vk::raii::CommandPool _pool;
 	// vk::raii::CommandPool _load_pool;

@@ -9,6 +9,13 @@ euler::vulkan::PhysicalDevice::PhysicalDevice(Renderer *renderer,
     : _physical_device(std::move(pdev))
     , _renderer(renderer)
 {
+	select_queue_families();
+}
+
+euler::vulkan::PhysicalDevice::PhysicalDevice(nullptr_t)
+    : _physical_device(nullptr)
+    , _renderer(nullptr)
+{
 }
 
 vk::SampleCountFlagBits
@@ -38,4 +45,26 @@ euler::vulkan::PhysicalDevice::supports_surface(
 {
 	return _physical_device.getSurfaceSupportKHR(graphics_family(),
 	    surface->surface());
+}
+
+void
+euler::vulkan::PhysicalDevice::select_queue_families()
+{
+	const auto properties = _physical_device.getQueueFamilyProperties();
+
+	for (uint32_t i = 0; i < properties.size(); i++) {
+		const auto &prop = properties[i];
+		if (prop.queueFlags & vk::QueueFlagBits::eGraphics
+		    && _graphics_family == NO_QUEUE) {
+			_graphics_family = i;
+		}
+		if (prop.queueFlags & vk::QueueFlagBits::eCompute
+		    && _compute_family == NO_QUEUE && i != _graphics_family) {
+			_compute_family = i;
+		}
+	}
+	if (_graphics_family == std::numeric_limits<uint32_t>::max())
+		throw std::runtime_error("Failed to find a graphics queue");
+	if (_compute_family == NO_QUEUE)
+		_renderer->log()->warn("No compute queue available on device");
 }

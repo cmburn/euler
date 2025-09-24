@@ -4,7 +4,8 @@
 #define EULER_VULKAN_BUFFER_H
 
 #include <vulkan/vulkan_raii.hpp>
-#include <vk_mem_alloc.h>
+
+#include "euler/vulkan/vma_fwd.h"
 
 namespace euler::vulkan {
 class Device;
@@ -19,19 +20,36 @@ public:
 
 	Buffer(Buffer &&) = default;
 	~Buffer();
-	static Buffer load(Device &device,
-	    vk::BufferUsageFlags usage,
+	static Buffer load(Device &device, vk::BufferUsageFlags usage,
 	    const std::vector<std::span<const uint8_t>> &data);
 
-
-	static Buffer load(Device &device,
-	    vk::BufferUsageFlags usage, std::span<const uint8_t> data);
+	static Buffer load(Device &device, vk::BufferUsageFlags usage,
+	    std::span<const uint8_t> data);
 	void copy_to(Buffer &other) const;
 
-	VmaAllocation &allocation() { return _allocation; }
-	const VmaAllocation &allocation() const { return _allocation; }
-	vk::raii::Buffer &buffer() { return _buffer; }
-	const vk::raii::Buffer &buffer() const { return _buffer; }
+	VmaAllocation &
+	allocation()
+	{
+		return _allocation;
+	}
+
+	[[nodiscard]] const VmaAllocation &
+	allocation() const
+	{
+		return _allocation;
+	}
+
+	vk::raii::Buffer &
+	buffer()
+	{
+		return _buffer;
+	}
+
+	[[nodiscard]] const vk::raii::Buffer &
+	buffer() const
+	{
+		return _buffer;
+	}
 
 private:
 	Device &_device;
@@ -41,6 +59,4 @@ private:
 };
 } /* namespace euler::vulkan */
 
-
 #endif /* EULER_VULKAN_BUFFER_H */
-

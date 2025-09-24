@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: ISC OR Apache-2.0 WITH LLVM-exception */
 
-#ifndef EULER_GAME_STATE_H
-#define EULER_GAME_STATE_H
+#ifndef EULER_APP_STATE_H
+#define EULER_APP_STATE_H
 
 #include <filesystem>
 #include <vector>
@@ -11,7 +11,7 @@
 #include <thread>
 #include <unordered_set>
 
-#include "euler/game/system.h"
+#include "euler/app/system.h"
 #include "euler/graphics/window.h"
 #include "euler/gui/window.h"
 #include "euler/util/config.h"
@@ -20,7 +20,7 @@
 #include "euler/util/storage.h"
 #include "euler/vulkan/renderer.h"
 
-namespace euler::game {
+namespace euler::app {
 static constexpr auto DEFAULT_THREAD_COUNT = util::DEFAULT_THREAD_COUNT;
 class State final : public util::State {
 public:
@@ -42,7 +42,7 @@ public:
 	bool loop(int &exit_code);
 	bool require(const char *path);
 
-	~State() override = default;
+	~State() override;
 
 	[[nodiscard]] util::Reference<util::Logger>
 	log() const override
@@ -78,7 +78,13 @@ public:
 	mrb_value
 	self_value() const
 	{
-		return _self_value;
+		return _attributes.self;
+	}
+
+	mrb_value
+	system_value() const
+	{
+		return _attributes.system;
 	}
 
 	struct Modules {
@@ -199,7 +205,6 @@ public:
 		return _system;
 	}
 
-
 private:
 	friend util::Reference<State> make_state(const util::Config &config);
 	friend util::Reference<State> make_state(int argc, char **argv);
@@ -221,22 +226,32 @@ private:
 	bool load_entry(std::string_view path);
 
 	bool load_text(std::string_view source, std::string_view data);
+	void check_mrb() const;
 
 	[[nodiscard]] util::nthread_t available_threads() const override;
 	mrb_state *_mrb = nullptr;
 	mutable std::mutex _mrb_mutex;
-	mrb_value _self_value = mrb_nil_value();
-	uint64_t _last_tick = -1;
-	uint64_t _tick = -1;
-	int_fast16_t _fps_counter = 0;
-	int16_t _fps = 0;
+	struct HaveMethod {
+		bool input : 1;
+		bool update : 1;
+		bool load : 1;
+		bool draw : 1;
+		bool quit : 1;
+		HaveMethod()
+		    : input(false)
+		    , update(false)
+		    , load(false)
+		    , draw(false)
+		    , quit(false)
+		{
+		}
+	};
+
 	struct {
-		bool input = false;
-		bool update = false;
-		bool load = false;
-		bool draw = false;
-		bool quit = false;
-	} _methods;
+		mrb_value self = mrb_nil_value();
+		mrb_value system = mrb_nil_value();
+	} _attributes;
+	HaveMethod _methods;
 	util::Config _config;
 	util::Reference<System> _system;
 	util::Reference<util::Logger> _log;
@@ -259,9 +274,12 @@ inline util::Reference<State>
 make_state(int argc, char **argv)
 {
 	const auto config = util::Config::parse_args(argc, argv);
-	return make_state(config);
+	auto state = make_state(config);
+	state.increment();
+	state.increment();
+	return state;
 }
 
-} /* namespace euler::game */
+} /* namespace euler::app */
 
-#endif /* EULER_GAME_STATE_H */
+#endif /* EULER_APP_STATE_H */

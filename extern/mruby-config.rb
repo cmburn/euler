@@ -7,6 +7,7 @@ MRuby::Build.new do |conf|
   conf.gembox 'default'
   #conf.enable_cxx_exception
   conf.enable_cxx_abi
+  conf.cc.flags << '-O0'
   def self.define_rules
     super
 

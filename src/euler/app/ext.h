@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: ISC */
 
-#ifndef EULER_GAME_EXT_H
-#define EULER_GAME_EXT_H
+#ifndef EULER_APP_EXT_H
+#define EULER_APP_EXT_H
 
 #include <mruby.h>
 #include <mruby/data.h>
@@ -11,7 +11,7 @@
 
 /* common extension utilities */
 
-namespace euler::game {
+namespace euler::app {
 
 /* Standard Euler Object type */
 #define MAKE_REFERENCE_TYPE(CLASS)                                             \
@@ -78,17 +78,14 @@ unwrap_data(mrb_state *mrb, const mrb_value &value, const mrb_data_type *type)
 		return mrb_obj_value(obj);                                     \
 	}
 
-// template <typename T>
-// static T *
-// unwrap_ptr(mrb_state *mrb, const mrb_value &value, const mrb_data_type *type)
-// {
-// 	if (mrb_nil_p(value)) return nullptr;
-// 	auto ptr = mrb_data_get_ptr(mrb, value, type);
-// 	if (ptr != nullptr) return static_cast<T *>(ptr);
-// 	mrb_raisef(mrb, E_TYPE_ERROR, "Expected a %s object",
-// 	    type->struct_name);
-// }
+#define ATTR_READER_VALUE(SELF_TYPE, SELF_DATA, WRAP, EXPR)                    \
+	[](mrb_state *mrb, const mrb_value self_value) {                       \
+		const auto self                                                \
+		    = unwrap_data<SELF_TYPE>(mrb, self_value, &SELF_DATA);     \
+		auto ans = (EXPR);                                             \
+		return WRAP(ans);                                              \
+	}
 
-} /* namespace euler::game */
+} /* namespace euler::app */
 
-#endif /* EULER_GAME_EXT_H */
+#endif /* EULER_APP_EXT_H */

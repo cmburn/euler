@@ -7,10 +7,19 @@
 euler::vulkan::Device::Device(const util::Reference<Renderer> &renderer,
     vk::raii::Device &&device, const bool graphics_device)
     : _device(std::move(device))
-    , _physical_device(renderer->physical_device())
+    , _physical_device(&renderer->physical_device())
     , _queue(make_queue(graphics_device, 0))
+    , _present_queue(make_queue(graphics_device, 0))
     , _pool(make_command_pool())
     , _renderer(renderer)
+{
+}
+euler::vulkan::Device::Device(std::nullptr_t)
+    : _device(nullptr)
+    , _physical_device(nullptr)
+    , _queue(nullptr)
+    , _present_queue(nullptr)
+    , _pool(nullptr)
 {
 }
 
@@ -96,8 +105,9 @@ vk::raii::Queue
 euler::vulkan::Device::make_queue(const bool graphics_device,
     const uint32_t idx) const
 {
-	const uint32_t qf = graphics_device ? _physical_device.graphics_family()
-					    : _physical_device.compute_family();
+	const uint32_t qf = graphics_device
+	    ? _physical_device->graphics_family()
+	    : _physical_device->compute_family();
 	return _device.getQueue(qf, idx);
 }
 
@@ -106,7 +116,7 @@ euler::vulkan::Device::make_command_pool() const
 {
 	const vk::CommandPoolCreateInfo create_info {
 		.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-		.queueFamilyIndex = _physical_device.graphics_family(),
+		.queueFamilyIndex = _physical_device->graphics_family(),
 	};
 	return _device.createCommandPool(create_info);
 }

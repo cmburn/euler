@@ -216,6 +216,8 @@ public:
 	    Severity level = Severity::Info,
 	    const std::vector<std::shared_ptr<Sink>> &sinks = default_sinks());
 
+	~Logger() override;
+
 private:
 	// static constexpr std::string_view BLACK = "\033[30m";
 	// static constexpr std::string_view RED = "\033[31m";

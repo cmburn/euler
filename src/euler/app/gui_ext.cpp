@@ -1,14 +1,14 @@
 /* SPDX-License-Identifier: ISC */
 
-#include "euler/game/gui_ext.h"
+#include "euler/app/gui_ext.h"
 
-#include "euler/game/ext.h"
+#include "euler/app/ext.h"
 #include "euler/gui/button.h"
 
 #include <mruby/hash.h>
 
 using namespace euler;
-using Modules = game::State::Modules;
+using Modules = app::State::Modules;
 
 static gui::Symbol
 to_symbol(mrb_sym sym)
@@ -77,14 +77,14 @@ from_symbol(gui::Symbol symbol)
 	}
 }
 
-extern const mrb_data_type game::GUI_BUTTON_TYPE
+extern const mrb_data_type app::GUI_BUTTON_TYPE
     = MAKE_REFERENCE_TYPE(euler::gui::Button);
 
 static mrb_value
 button_symbol(mrb_state *mrb, const mrb_value self_value)
 {
-	const auto self = game::unwrap<gui::Button>(mrb, self_value,
-	    &game::GUI_BUTTON_TYPE);
+	const auto self = app::unwrap<gui::Button>(mrb, self_value,
+	    &app::GUI_BUTTON_TYPE);
 	return from_symbol(self->symbol());
 }
 
@@ -97,7 +97,7 @@ init_button(mrb_state *mrb, Modules &mod)
 }
 
 void
-game::init_gui(util::Reference<State> state)
+app::init_gui(util::Reference<State> state)
 {
 	state->log()->info("Initializing Euler::GUI...");
 	auto mrb = state->mrb();

@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: ISC */
 
-#include "euler/game/event.h"
+#include "euler/app/event.h"
 
 #include <mruby.h>
 #include <mruby/array.h>
@@ -775,7 +775,7 @@ sdl_pen_axis_sym(const SDL_PenAxis axis)
 }
 
 mrb_value
-euler::game::sdl_event_to_mrb(util::Reference<State> state,
+euler::app::sdl_event_to_mrb(util::Reference<State> state,
     const SDL_Event &event)
 {
 	auto mrb = state->mrb();
@@ -1228,7 +1228,7 @@ euler::game::sdl_event_to_mrb(util::Reference<State> state,
 }
 
 void
-euler::game::init_game_event(util::Reference<State> state)
+euler::app::init_game_event(util::Reference<State> state)
 {
 	(void)state;
 }

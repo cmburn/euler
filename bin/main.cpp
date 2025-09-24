@@ -1,16 +1,17 @@
 /* SPDX-License-Identifier: ISC */
 
-#include "euler/game/state.h"
+#include "euler/app/state.h"
 
 int
 main(const int argc, char **argv)
 {
 	try {
-		const auto state = euler::game::make_state(argc, argv);
+		const auto state = euler::app::make_state(argc, argv);
 		if (!state->initialize()) {
 			state->log()->error("Failed to initialize state");
 			return EXIT_FAILURE;
 		}
+		state->log()->info("Initialization complete");
 		int exit_code = 0;
 		while (state->loop(exit_code)) { }
 		state->log()->info("Exiting with code {}", exit_code);

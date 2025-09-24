@@ -7,7 +7,7 @@
 #include <stdint.h>
 #else
 #include <thread>
-#include <vk_mem_alloc.h>
+
 #include <vulkan/vulkan_raii.hpp>
 
 #include "euler/util/logger.h"
@@ -17,6 +17,7 @@
 #include "euler/vulkan/physical_device.h"
 #include "euler/vulkan/surface.h"
 #include "euler/vulkan/texture.h"
+#include "euler/vulkan/vma_fwd.h"
 
 namespace euler::vulkan {
 /* There can be multiple states per Euler instance, but there can only ever be
@@ -34,9 +35,13 @@ public:
 		vk::PresentModeKHR present_mode = vk::PresentModeKHR::eFifo;
 	};
 	using ShaderData = std::span<const uint8_t>;
+	static Config default_config();
 
-	Renderer(const util::Reference<Surface> &surface, const Config &config);
+	Renderer(
+	    const Config &config = default_config());
 	std::optional<ShaderData> shader_data(std::string_view key);
+	std::optional<vk::raii::ShaderModule> load_shader(std::string_view key);
+	void initialize(const util::Reference<Surface> &surface);
 
 	util::Reference<Surface> surface() const;
 
@@ -82,6 +87,18 @@ public:
 		return _log;
 	}
 
+	const vk::raii::Instance &
+	instance() const
+	{
+		return _instance;
+	}
+
+	vk::raii::Instance &
+	instance()
+	{
+		return _instance;
+	}
+
 	~Renderer() override;
 
 private:
@@ -91,6 +108,7 @@ private:
 	Device create_device();
 	static std::optional<ShaderData> load_builtin_shader(
 	    std::string_view key);
+	static vk::raii::Context make_context();
 
 	std::unordered_map<std::string, std::vector<uint8_t>> _runtime_shaders;
 	vk::raii::Context _context = {};
@@ -100,10 +118,6 @@ private:
 	util::Reference<util::Logger> _log;
 	PhysicalDevice _physical_device;
 	Device _device;
-	uint32_t _graphics_queue_index = 0;
-	uint32_t _present_queue_index = 0;
-	uint32_t _compute_queue_index = 0;
-
 	VmaAllocator _allocator = nullptr;
 };
 } /* namespace euler::vulkan */

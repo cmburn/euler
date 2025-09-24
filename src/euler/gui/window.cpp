@@ -13,7 +13,10 @@ euler::gui::Window::Window(const util::Reference<util::Logger> &parent,
 {
 }
 
-euler::gui::Window::~Window() { nk_sdl_shutdown(_sdl); }
+euler::gui::Window::~Window()
+{
+	if (_sdl != nullptr) nk_sdl_shutdown(_sdl);
+}
 
 void
 euler::gui::Window::widget(const char *title,

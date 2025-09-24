@@ -2,15 +2,19 @@ class Game < Euler::Game::State
   WINDOW_RECT = {x: 50, y: 50, w: 220, h: 220}
   WINDOW_FLAGS = %I[border moveable closeable]
 
+  # 93825003446896
+
   def load
     @tick = 0
+    @time = 0.0
   end
 
   def update(dt)
-    @tick += 1
-    log.info("#{@tick}")
-    if @tick % 1000 == 0
-      log.info "FPS: #{system.fps}"
+    @time += dt
+    # log.info("#{@tick}")
+    if @time >= 1.0
+      @time = 0.0
+      log.info "FPS: #{system.fps.round(3)}"
     end
   end
 

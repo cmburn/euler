@@ -2,6 +2,8 @@
 
 #include "euler/vulkan/buffer.h"
 
+#include <vk_mem_alloc.h>
+
 #include "euler/vulkan/device.h"
 #include "euler/vulkan/physical_device.h"
 #include "euler/vulkan/renderer.h"
