@@ -32,10 +32,6 @@ class Game < Euler::Game::State
     # end
   end
 
-  def hello
-    log.info "Hello, world!"
-  end
-
   def quit
     log.info "Received quit notification"
   end

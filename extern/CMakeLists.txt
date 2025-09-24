@@ -15,6 +15,7 @@ target_sources(physfs-static PRIVATE
 
 target_include_directories(physfs-static INTERFACE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/physfs/extras>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/SDL/include>
         $<INSTALL_INTERFACE:include/>
 )
 
