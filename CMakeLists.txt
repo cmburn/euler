@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.17.2)
 project(euler)
 
-
+add_compile_options(-g)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_C_STANDARD 11)
 

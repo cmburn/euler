@@ -140,6 +140,7 @@ private:
 	struct CameraInfo {
 		util::Reference<Camera> camera;
 		glm::mat4 projection;
+		void update();
 	};
 
 	[[nodiscard]] vk::PresentModeKHR present_mode() const;

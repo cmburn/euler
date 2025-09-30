@@ -2,8 +2,8 @@
 
 #include "euler/vulkan/surface.h"
 
-#include <SDL3/SDL_vulkan.h>
 #include <vk_mem_alloc.h>
+#include <SDL3/SDL_vulkan.h>
 
 #include "euler/vulkan/renderer.h"
 
@@ -19,8 +19,8 @@ euler::vulkan::Surface::initialize_vulkan(const util::Reference<Renderer> &r)
 	VkSurfaceKHR surface = nullptr;
 	const auto instance = static_cast<VkInstance>(*r->instance());
 	if (!SDL_Vulkan_CreateSurface(window(), instance, nullptr, &surface)) {
-		auto err = std::format("Failed to create Vulkan surface: {}",
-		    SDL_GetError());
+		const auto err = std::format(
+		    "Failed to create Vulkan surface: {}", SDL_GetError());
 		throw std::runtime_error(err);
 	}
 	_surface = vk::raii::SurfaceKHR(r->instance(), surface);
@@ -81,7 +81,7 @@ euler::vulkan::Surface::start_frame(const util::Color clear)
 
 	cf.descriptor_buffer.begin_frame();
 
-	for (auto &ci : _cameras) ci.camera->update_ubo(ci.projection);
+	for (auto &ci : _cameras) ci.update();
 	flush_ubo_buffers(cf);
 	const vk::Rect2D rect = {
 		.offset = { .x = 0, .y = 0 },
@@ -242,10 +242,21 @@ euler::vulkan::Surface::flush_sprite_batch()
 }
 
 void
-euler::vulkan::Surface::flush_ubo_buffers(Swapchain::Frame &)
+euler::vulkan::Surface::flush_ubo_buffers(Swapchain::Frame &frame)
 {
-	/* TODO */
-	throw std::runtime_error("Not implemented");
+	(void)frame;
+
+	std::vector<glm::mat4> ubo_buffers;
+	ubo_buffers.reserve(_cameras.size());
+	for (auto &ci : _cameras) ubo_buffers.emplace_back(ci.projection);
+	assert(!ubo_buffers.empty());
+	frame.descriptor_buffer.copy_data(ubo_buffers);
+	vk::WriteDescriptorSet write = {
+		.dstSet = ,
+		.descriptorCount = ,
+		.descriptorType = ,
+		.pBufferInfo = ,
+	};
 }
 
 euler::util::Reference<euler::vulkan::Renderer>
@@ -311,6 +322,12 @@ void
 euler::vulkan::Surface::increment_current_frame()
 {
 	_current_frame = (_current_frame + 1) % Swapchain::FRAMES_IN_FLIGHT;
+}
+
+void
+euler::vulkan::Surface::CameraInfo::update()
+{
+	projection = camera->ubo();
 }
 
 vk::PresentModeKHR

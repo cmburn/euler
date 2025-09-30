@@ -37,8 +37,7 @@ public:
 	using ShaderData = std::span<const uint8_t>;
 	static Config default_config();
 
-	Renderer(
-	    const Config &config = default_config());
+	Renderer(const Config &config = default_config());
 	std::optional<ShaderData> shader_data(std::string_view key);
 	std::optional<vk::raii::ShaderModule> load_shader(std::string_view key);
 	void initialize(const util::Reference<Surface> &surface);

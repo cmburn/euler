@@ -28,6 +28,37 @@ public:
 	void begin_frame();
 	void end_frame(CommandBuffer &buf);
 	BufferInfo copy_data(std::span<const uint8_t> data);
+	template <typename T>
+	BufferInfo
+	copy_data(const T *data, const size_t count = 1)
+	{
+		return copy_data({
+		    reinterpret_cast<const uint8_t *>(data),
+		    sizeof(T) * count,
+		});
+	}
+
+	template <typename T>
+	BufferInfo
+	copy_data(const std::vector<T> &data)
+	{
+		return copy_data(data.data(), data.size());
+	}
+
+	template <typename T>
+	BufferInfo
+	copy_data(const std::span<T> &data)
+	{
+		return copy_data(data.data(), data.size());
+	}
+
+	template <typename T, size_t N>
+	BufferInfo
+	copy_data(const std::array<T, N> &data)
+	{
+		return copy_data(data.data(), data.size());
+	}
+
 	BufferInfo reserve_space(vk::DeviceSize size);
 	void record_copy_pipeline_barrier(CommandBuffer &buf);
 	void record_compute_pipeline_barrier(CommandBuffer &buf);
@@ -47,14 +78,10 @@ private:
 	};
 	InternalBuffer *append_buffer();
 	InternalBuffer *find_buffer(vk::DeviceSize size);
-	void record_barrier(
-		vk::AccessFlags src_access,
-		vk::AccessFlags dst_access,
-		uint32_t queue_family,
-		vk::PipelineStageFlags src_stage,
-		vk::PipelineStageFlags dst_stage,
-		CommandBuffer &buf
-		);
+	void record_barrier(vk::AccessFlags src_access,
+	    vk::AccessFlags dst_access, uint32_t queue_family,
+	    vk::PipelineStageFlags src_stage, vk::PipelineStageFlags dst_stage,
+	    CommandBuffer &buf);
 	std::vector<InternalBuffer> _internal_buffers;
 	// vk::raii::CommandBuffer _copy_buffer;
 	std::vector<vk::BufferMemoryBarrier> _memory_barriers;

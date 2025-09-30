@@ -37,6 +37,7 @@ public:
 			float h;
 		} on_screen;
 	};
+
 	Camera(const util::Reference<Surface> &surface, const Spec &spec);
 	~Camera() override = default;
 	void set_spec(const Spec &spec);
@@ -46,11 +47,10 @@ public:
 		return _spec;
 	}
 
-	/* ReSharper disable once CppHidingFunction */
 	State state() const { return _state; }
 	void flush_ubo(DescriptorBuffer &buffer);
 	void set_state(State state);
-	void update_ubo(glm::mat4 &mat);
+	glm::mat4 ubo() const;
 	[[nodiscard]] util::Reference<Surface> surface() const;
 
 	Index index() const
