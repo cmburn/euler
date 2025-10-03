@@ -22,18 +22,15 @@ add_library(euler_app STATIC
 )
 
 target_link_libraries(euler_app PUBLIC
+        euler_vulkan
         euler_graphics
         euler_gui
         euler_util
-        euler_vulkan
+        ${MRUBY_LIBRARIES}
 )
 
 target_include_directories(euler_app PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/../../../extern/mruby/build/host/include
-)
-
-target_link_libraries(euler_app PUBLIC
-        ${MRUBY_LIBRARIES}
 )
 
 target_compile_definitions(euler_app PUBLIC

@@ -19,6 +19,7 @@ class System final : public util::Object {
 
 public:
 	System(const util::Reference<State> &state = nullptr);
+	~System() override;
 	util::Reference<State> state() const;
 	using tick_t = decltype(SDL_GetTicks());
 

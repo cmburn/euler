@@ -19,15 +19,25 @@ static constexpr auto state_user_storage = ATTR_READER(State, STATE_TYPE,
     STORAGE_TYPE, mod.util.storage, self->user_storage());
 static constexpr auto state_title_storage = ATTR_READER(State, STATE_TYPE,
     STORAGE_TYPE, mod.util.storage, self->title_storage());
-static constexpr auto state_system = ATTR_READER(State, STATE_TYPE, SYSTEM_TYPE,
-    mod.game.system, self->system());
-#define WRAP(ARG) mrb_float_value(mrb, ARG)
-static constexpr auto system_fps = [](mrb_state *mrb,
-				       const mrb_value self_value) {
-	const auto self = unwrap_data<System>(mrb, self_value, &SYSTEM_TYPE);
-	auto ans = (self->fps());
-	return mrb_float_value(mrb, ans);
+static constexpr auto state_system = [](mrb_state *mrb,
+					 const mrb_value self_value) {
+	const auto self = unwrap_data<State>(mrb, self_value, &STATE_TYPE);
+	const auto state = State::get(mrb);
+	const auto mod = state->module();
+	auto ans = (self->system());
+	auto wrapped = ans.wrap();
+	state->assert_state();
+	const auto obj = mrb_data_object_alloc(mrb, mod.game.system, wrapped,
+	    &SYSTEM_TYPE);
+	state->assert_state();
+	const auto value = mrb_obj_value(obj);
+	mrb_gc_protect(mrb, value);
+	return value;
 };
+
+#define WRAP(ARG) mrb_float_value(mrb, ARG)
+static constexpr auto system_fps
+    = ATTR_READER_VALUE(System, SYSTEM_TYPE, WRAP, self->fps());
 #undef WRAP
 
 static mrb_value

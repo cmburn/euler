@@ -61,10 +61,17 @@ unwrap_data(mrb_state *mrb, const mrb_value &value, const mrb_data_type *type)
 		    = unwrap_data<SELF_TYPE>(mrb, self_value, &SELF_DATA);     \
 		const auto state = State::get(mrb);                            \
 		const auto mod = state->module();                              \
+		state->assert_state();                                         \
 		auto ans = (EXPR);                                             \
+		state->assert_state();                                         \
 		const auto obj                                                 \
 		    = Data_Wrap_Struct(mrb, (SUPER), &OTHER_DATA, ans.wrap()); \
-		return mrb_obj_value(obj);                                     \
+		state->assert_state();                                         \
+		const auto value = mrb_obj_value(obj);                         \
+		state->assert_state();                                         \
+		mrb_gc_protect(mrb, value);                                    \
+		state->assert_state();                                         \
+		return value;                                                  \
 	}
 
 #define ATTR_READER_DATA(SELF_TYPE, SELF_DATA, OTHER_TYPE, OTHER_DATA, EXPR)   \

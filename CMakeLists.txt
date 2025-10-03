@@ -15,6 +15,18 @@ find_package(Vulkan REQUIRED)
 find_package(PkgConfig REQUIRED)
 find_package(Ruby REQUIRED)
 
+add_compile_options(
+        -fno-omit-frame-pointer
+        -fsanitize=address
+        -fsanitize=undefined
+)
+
+add_link_options(
+        -fno-omit-frame-pointer
+        -fsanitize=address
+        -fsanitize=undefined
+)
+
 # TODO: not this
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/extern/SDL/include)
 

@@ -251,12 +251,6 @@ euler::vulkan::Surface::flush_ubo_buffers(Swapchain::Frame &frame)
 	for (auto &ci : _cameras) ubo_buffers.emplace_back(ci.projection);
 	assert(!ubo_buffers.empty());
 	frame.descriptor_buffer.copy_data(ubo_buffers);
-	vk::WriteDescriptorSet write = {
-		.dstSet = ,
-		.descriptorCount = ,
-		.descriptorType = ,
-		.pBufferInfo = ,
-	};
 }
 
 euler::util::Reference<euler::vulkan::Renderer>

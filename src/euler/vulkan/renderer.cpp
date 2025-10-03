@@ -166,27 +166,26 @@ euler::vulkan::Renderer::create_physical_device()
 vk::raii::Device
 euler::vulkan::Renderer::select_device()
 {
-	static constexpr std::array exts = {
-		vk::KHRCreateRenderpass2ExtensionName,
+	static constexpr std::array EXTS = {
+		vk::KHRDynamicRenderingExtensionName,
 		vk::KHRPushDescriptorExtensionName,
 		vk::KHRSpirv14ExtensionName,
 		vk::KHRSwapchainExtensionName,
-		vk::KHRSynchronization2ExtensionName,
 	};
 
-	static constexpr float priority = 1.0f;
+	static constexpr float PRIORITY = 1.0f;
 	const auto &pdev = _physical_device.physical_device();
 	auto props = pdev.getQueueFamilyProperties();
 	std::array queue_info = {
 		(vk::DeviceQueueCreateInfo) {
 		    .queueFamilyIndex = _physical_device.graphics_family(),
 		    .queueCount = 1,
-		    .pQueuePriorities = &priority,
+		    .pQueuePriorities = &PRIORITY,
 		},
 		(vk::DeviceQueueCreateInfo) {
 		    .queueFamilyIndex = _physical_device.compute_family(),
 		    .queueCount = 1,
-		    .pQueuePriorities = &priority,
+		    .pQueuePriorities = &PRIORITY,
 		},
 	};
 
@@ -206,11 +205,11 @@ euler::vulkan::Renderer::select_device()
 	//     };
 
 	static const vk::StructureChain<vk::PhysicalDeviceFeatures2,
-	    vk::PhysicalDeviceVulkan13Features,
+	    vk::PhysicalDeviceVulkan12Features,
 	    vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>
 	    FEATURE_CHAIN = {
 		    {},
-		    { .dynamicRendering = true },
+		    {},
 		    { .extendedDynamicState = true },
 	    };
 
@@ -220,8 +219,8 @@ euler::vulkan::Renderer::select_device()
 		.pQueueCreateInfos = queue_info.data(),
 		.enabledLayerCount = 0,
 		.ppEnabledLayerNames = nullptr,
-		.enabledExtensionCount = static_cast<uint32_t>(exts.size()),
-		.ppEnabledExtensionNames = exts.data(),
+		.enabledExtensionCount = static_cast<uint32_t>(EXTS.size()),
+		.ppEnabledExtensionNames = EXTS.data(),
 	};
 
 	return pdev.createDevice(create_info);

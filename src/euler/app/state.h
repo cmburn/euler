@@ -15,10 +15,12 @@
 #include "euler/graphics/window.h"
 #include "euler/gui/window.h"
 #include "euler/util/config.h"
+#include "euler/util/mruby_exception.h"
 #include "euler/util/logger.h"
 #include "euler/util/state.h"
 #include "euler/util/storage.h"
 #include "euler/vulkan/renderer.h"
+#include "mruby/throw.h"
 
 namespace euler::app {
 static constexpr auto DEFAULT_THREAD_COUNT = util::DEFAULT_THREAD_COUNT;
@@ -205,6 +207,42 @@ public:
 		return _system;
 	}
 
+	void assert_state() const;
+	util::MRubyException make_exception(RObject *exc) const override;
+	static void wrap_mrb_exception(mrb_state *mrb, RObject *exc);
+
+	template <typename T>
+	T
+	wrap_call(const std::function<T()> &fn)
+	{
+		mrb_jmpbuf jmp, *prev_jmp = _mrb->jmp;
+		/* ReSharper disable once CppDFALocalValueEscapesFunction */
+		_mrb->jmp = &jmp;
+		// try {
+		// 	T ans = fn();
+		// 	_mrb->jmp = prev_jmp;
+		// 	return ans;
+		// } catch (mrb_jmpbuf *e) {
+		// 	_mrb->jmp = prev_jmp;
+		// 	if (e != (&jmp)) throw e;
+		// } catch (...) {
+		// 	_mrb->jmp = prev_jmp;
+		// 	throw;
+		// }
+		MRB_TRY(mrb()->jmp)
+		{
+			auto value = fn();
+			mrb()->jmp = prev_jmp;
+			return value;
+		}
+		MRB_CATCH(mrb()->jmp)
+		{
+			mrb()->jmp = prev_jmp;
+			throw make_exception(mrb()->exc);
+		};
+		MRB_END_EXC(mrb()->jmp);
+	}
+
 private:
 	friend util::Reference<State> make_state(const util::Config &config);
 	friend util::Reference<State> make_state(int argc, char **argv);
@@ -275,7 +313,6 @@ make_state(int argc, char **argv)
 {
 	const auto config = util::Config::parse_args(argc, argv);
 	auto state = make_state(config);
-	state.increment();
 	state.increment();
 	return state;
 }

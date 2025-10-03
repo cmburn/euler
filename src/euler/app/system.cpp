@@ -11,6 +11,11 @@ euler::app::System::System(const util::Reference<State> &state)
 	_last_tick = _tick;
 }
 
+euler::app::System::~System()
+{
+	assert(false);
+}
+
 euler::util::Reference<euler::app::State>
 euler::app::System::state() const
 {

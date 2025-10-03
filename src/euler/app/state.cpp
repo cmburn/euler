@@ -8,6 +8,7 @@
 
 #include <mruby.h>
 #include <SDL3/SDL_events.h>
+#include <mruby/array.h>
 #include <mruby/compile.h>
 #include <mruby/presym.h>
 #include <mruby/proc.h>
@@ -15,13 +16,13 @@
 #include <mruby/throw.h>
 #include <mruby/variable.h>
 
+#include "euler/app/event.h"
 #include "euler/app/game_ext.h"
 #include "euler/app/graphics_ext.h"
 #include "euler/app/gui_ext.h"
 #include "euler/app/util_ext.h"
 #include "euler/app/vulkan_ext.h"
 #include "euler/app/window.h"
-#include "event.h"
 
 #include "euler/util/storage.h"
 #include "euler/util/thread.h"
@@ -57,10 +58,35 @@ sdl_init_flags()
 	return flags;
 }
 
+static std::string
+read_full_message(mrb_state *mrb, RObject *exc)
+{
+	// TODO: backtrace support
+	const auto obj = mrb_obj_value(exc);
+	const auto message = mrb_funcall(mrb, obj, "message", 0);
+	if (!mrb_string_p(message))
+		return "Exception message is not a string";
+	return std::string(RSTRING_PTR(message), RSTRING_LEN(message));
+}
+
 mrb_value
 euler::app::State::gv_state()
 {
-	return mrb_gv_get(_mrb, MRB_GVSYM(state));
+	const auto value = mrb_gv_get(_mrb, MRB_GVSYM(state));
+	return value;
+}
+
+void
+euler::app::State::assert_state() const
+{
+	if (_mrb != nullptr && _mrb->c != nullptr) return;
+	log()->error("Corrupted state");
+}
+
+euler::util::MRubyException
+euler::app::State::make_exception(RObject *exc) const
+{
+	return util::MRubyException(read_full_message(_mrb, exc));
 }
 
 euler::app::State::State(const util::Config &config)
@@ -126,15 +152,14 @@ euler::app::State::app_update(const float dt)
 {
 	assert(_methods.update);
 	const auto arg = mrb_float_value(_mrb, dt);
-	// mrb_gc_register(_mrb, arg);
-	mrb_funcall_id(_mrb, self_value(), MRB_SYM(update), 1, arg);
+	assert_state();
+	// mrb_funcall_id(_mrb, self_value(), MRB_SYM(update), 1, arg);
+	mrb_funcall_argv(_mrb, self_value(), MRB_SYM(update), 1, &arg);
+	assert_state();
 	if (_mrb->exc != nullptr) {
-		_log->error("Exception in update: {}",
-		    exception_string().value());
-		_mrb->exc = nullptr;
-		return false;
+		log()->error("exc in update: {}", exception_string().value());
 	}
-	return true;
+	return _mrb->exc == nullptr;
 }
 
 bool
@@ -171,8 +196,7 @@ euler::app::State::app_draw()
 {
 	if (!_methods.draw) return true;
 	try {
-		// mrb_funcall_id(_mrb, _attributes.self, MRB_SYM(draw), 0);
-		mrb_funcall_argv(_mrb, self_value(), MRB_SYM(draw), 0, nullptr);
+		mrb_funcall_id(_mrb, _attributes.self, MRB_SYM(draw), 0);
 		if (_mrb->exc != nullptr) {
 			_log->error("Exception in draw: {}",
 			    exception_string().value());
@@ -246,7 +270,11 @@ euler::app::State::exception_string() const
 {
 	if (_mrb->exc == nullptr) return std::nullopt;
 	auto str = mrb_obj_value(_mrb->exc);
-	auto value = mrb_obj_as_string(_mrb, str);
+	// auto value = mrb_obj_as_string(_mrb, str);
+	assert_state();
+	auto value = mrb_funcall_id(_mrb, str, MRB_SYM(to_s), 0);
+	assert_state();
+	if (!mrb_string_p(value)) return std::nullopt;
 	const char *ptr = RSTRING_PTR(value);
 	const auto len = RSTRING_LEN(value);
 	/* ReSharper disable once CppDFALocalValueEscapesFunction */
@@ -296,11 +324,10 @@ euler::app::State::load_core()
 	init_graphics(self);
 	init_gui(self);
 	init_game(self);
-	auto data = Data_Wrap_Struct(_mrb, _euler.game.state, &STATE_TYPE,
+	const auto data = Data_Wrap_Struct(_mrb, _euler.game.state, &STATE_TYPE,
 	    self.wrap());
 	_attributes.self = mrb_obj_value(data);
 	mrb_gc_register(_mrb, _attributes.self);
-
 	_log->debug("Core modules initialized");
 	return true;
 }
@@ -358,11 +385,6 @@ euler::app::State::initialize()
 	if (!load_entry(_config.entry_file)) return false;
 	if (!verify_gv_state()) return false;
 	_attributes.self = gv_state();
-	mrb_gc_register(_mrb, _attributes.self);
-	// _attributes.system = mrb_obj_value(
-	//     Data_Wrap_Struct(_mrb, _euler.game.system, &SYSTEM_TYPE,
-	// 	_system.wrap()));
-	// mrb_gc_register(_mrb, _attributes.system);
 	if (!app_load()) return false;
 	return true;
 }
@@ -371,15 +393,15 @@ bool
 euler::app::State::loop(int &exit_code)
 {
 	try {
-		return update(exit_code);
+		return wrap_call<bool>([&]() {
+			return update(exit_code); //
+		});
 	} catch (const std::exception &e) {
 		_log->error("Unhandled exception in loop: {}", e.what());
 		exit_code = EXIT_FAILURE;
 		return false;
-	} catch (mrb_jmpbuf *e) {
-		if (e != (_mrb->jmp)) throw e;
-		_log->error("Unhandled mruby exception in loop: {}",
-		    exception_string().value());
+	} catch (...) {
+		_log->error("Unknown exception in loop");
 		exit_code = EXIT_FAILURE;
 		return false;
 	}
@@ -428,9 +450,4 @@ euler::app::State::require(const char *path)
 	return true;
 }
 
-euler::app::State::~State()
-{
-	//
-	//mrb_close(_mrb);
-	assert(false);
-}
+euler::app::State::~State() { mrb_close(_mrb); }

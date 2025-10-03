@@ -26,7 +26,8 @@ target_include_directories(mruby_headers INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/m
 set(MRUBY_LIBRARIES
         ${CMAKE_CURRENT_SOURCE_DIR}/mruby/build/host/lib/libmruby.a
         ${CMAKE_CURRENT_SOURCE_DIR}/mruby/build/host/lib/libmruby_core.a
-        CACHE FILEPATH "Path to the mruby library" FORCE)
+        CACHE FILEPATH "Path to the mruby library" FORCE
+)
 
 set(MRUBY_LDFLAGS PARENT_SCOPE -lmruby -lws2_32 -lwsock32 -lws2_32)
 

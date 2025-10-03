@@ -13,6 +13,8 @@ add_library(euler_util STATIC
         storage.h
         thread.cpp
         thread.h
+        mruby_exception.cpp
+        mruby_exception.h
         version.cpp
         version.h
 )
@@ -24,13 +26,14 @@ add_library(euler_util_optparse STATIC
 
 target_link_libraries(euler_util PUBLIC
         mruby_headers
-        ${MRUBY_LIBRARIES}
         SDL3-static
+        ${MRUBY_LIBRARIES}
 )
 
 target_link_libraries(euler_util PRIVATE
         physfs-static
         euler_util_optparse
+        ${MRUBY_LIBRARIES}
 )
 
 target_include_directories(euler_util PUBLIC
