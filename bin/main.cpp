@@ -13,7 +13,10 @@ main(const int argc, char **argv)
 		}
 		state->log()->info("Initialization complete");
 		int exit_code = 0;
-		while (state->loop(exit_code)) { }
+		while (state->loop(exit_code)) {
+			/* ReSharper disable once CppRedundantControlFlowJump */
+			continue; /* NOLINT(*-redundant-control-flow) */
+		}
 		state->log()->info("Exiting with code {}", exit_code);
 		return exit_code;
 	} catch (const std::exception &e) {

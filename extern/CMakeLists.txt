@@ -7,6 +7,7 @@ add_subdirectory(glm)
 add_subdirectory(physfs)
 add_subdirectory(nlohmann-json)
 add_subdirectory(VulkanMemoryAllocator)
+add_subdirectory(box2d)
 
 target_sources(physfs-static PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/physfs/extras/physfssdl3.c

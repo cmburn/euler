@@ -15,13 +15,16 @@ The engine should be fully thread-safe, anything else is a bug.
 
 The general goals for Euler is to create an engine focused on:
 - Vulkan-based graphics
-- Portability across PC platforms (Windows, Mac, Linux, *BSD and ultimately
-  Nintendo Switch)
+- Portability across PC platforms (Windows, Mac, Linux, *BSD) and ultimately
+  Nintendo Switch
 - Tailored for 2D platformers
 - An emphasis on physics simulation
 
 
-# Install Instructions
+# Build Instructions
+
+It's recommended to build with Clang- GCC should work, but isn't actively 
+tested. If you use MSVC, you're on your own unfortunately.
 
 ## Dependencies
 
@@ -66,11 +69,14 @@ it after building with `euler bin/main.rb` from the root source directory.
 
 This is not intended to be a general-purpose engine. It's been developed for
 a particular project of mine, and tradeoffs have been made to suit that 
-project's needs. Pull requests are welcome, but may be rejected if they
-impede the usage I'm aiming for.
+project's needs. Pull requests are welcome, but may be rejected if they are out
+of scope for the project.
 
 If you're looking for a general-purpose Ruby engine, I recommend [DragonRuby](
 https://dragonruby.org/
-), which has a wonderful community and is very well-maintained. [Love2D](
+), which has a wonderful community and is very well-maintained. It's also very
+easy to pick up. 
+
+[Love2D](
 https://love2d.org/
 ) is also fantastic, and much of Euler's API has been patterned after it.

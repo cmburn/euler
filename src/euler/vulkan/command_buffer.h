@@ -33,6 +33,8 @@ public:
 	void end_render_pass();
 	void end();
 	void push_constants();
+	void dispatch(uint32_t x, uint32_t y, uint32_t z);
+	void flush_cameras();
 
 private:
 	vk::raii::CommandBuffer _command_buffer;

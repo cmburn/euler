@@ -25,7 +25,6 @@ class PhysicalDevice;
 class Surface : public util::Object {
 	friend class Renderer;
 	friend class Swapchain;
-
 public:
 	virtual SDL_Window *window() const = 0;
 	virtual uint32_t width() const = 0;
@@ -49,7 +48,8 @@ public:
 	void start_frame(util::Color clear = util::BLACK);
 	void end_frame();
 	void flush_sprite_batch();
-	void flush_ubo_buffers(Swapchain::Frame &frame);
+	void flush_ubo_buffers(Swapchain::Frame &frame,
+	    Swapchain::SwapchainImage &image);
 	util::Reference<Renderer> renderer() const;
 	const Device &device() const;
 	Device &device();
@@ -148,6 +148,10 @@ private:
 	Swapchain _swapchain;
 	util::WeakReference<Renderer> _renderer;
 	std::vector<CameraInfo> _cameras;
+	util::Reference<Pipeline> _prim_fill_pipe;
+	util::Reference<Pipeline> _prim_line_pipe;
+	util::Reference<Pipeline> _instanced_pipe;
+	util::Reference<Pipeline> _shadows_pipe;
 	util::Reference<Pipeline> _sprite_batch_pipe;
 	vk::SurfaceFormatKHR _format = {
 		.format = vk::Format::eB8G8R8A8Srgb,

@@ -8,7 +8,7 @@
 namespace euler::vulkan {
 class ComputePipeline final : public Pipeline {
 public:
-	PipelineType
+	[[nodiscard]] PipelineType
 	pipeline_type() const override
 	{
 		return PipelineType::Compute;

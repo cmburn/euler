@@ -2,3 +2,4 @@ cmake-build-*
 build
 .idea
 mkmf.log
+extern/mruby/build

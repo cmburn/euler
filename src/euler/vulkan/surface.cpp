@@ -82,7 +82,7 @@ euler::vulkan::Surface::start_frame(const util::Color clear)
 	cf.descriptor_buffer.begin_frame();
 
 	for (auto &ci : _cameras) ci.update();
-	flush_ubo_buffers(cf);
+	flush_ubo_buffers(cf, si);
 	const vk::Rect2D rect = {
 		.offset = { .x = 0, .y = 0 },
 		.extent = { .width = width(), .height = height() },
@@ -189,68 +189,81 @@ euler::vulkan::Surface::end_frame()
 void
 euler::vulkan::Surface::flush_sprite_batch()
 {
-	/* TODO: PushDescriptorSet extension */
 	auto &cf = _swapchain._frames[_current_frame];
 	auto &si = _swapchain._images[_image_index];
 	auto &db = cf.descriptor_buffer;
-	/* TODO: Handle via Vulkan extension */
 	const auto draw_command_data
 	    = static_cast<void *>(_draw_commands.data());
-	const auto cmd_size = sizeof(decltype(_draw_commands)::value_type)
-	    * _draw_commands.size();
+	const auto cmd_size = sizeof(DrawCommand) * _draw_commands.size();
 	[[maybe_unused]] auto [cmd_inst, cmd_offset] = db.copy_data({
 	    static_cast<const uint8_t *>(draw_command_data),
 	    cmd_size,
 	});
-	[[maybe_unused]] const auto draw_instance_size
-	    = sizeof(decltype(_draw_instances)::value_type)
-	    * _draw_instances.size();
-	[[maybe_unused]] auto [draw_inst, draw_offset]
-	    = db.reserve_space(cmd_size);
-	// const std::array buffer_info = {
-	// 	vk::DescriptorBufferInfo {
-	// 	    .buffer = *cmd_inst,
-	// 	    .offset = cmd_offset,
-	// 	    .range = cmd_size,
-	// 	},
-	// 	vk::DescriptorBufferInfo {
-	// 	    .buffer = *draw_inst,
-	// 	    .offset = draw_offset,
-	// 	    .range = draw_instance_size,
-	// 	},
-	// };
-	/*
-	 * void vkCmdPushDescriptorSetKHR(
-	 *     VkCommandBuffer             commandBuffer,
-	 *     VkPipelineBindPoint         pipelineBindPoint,
-	 *     VkPipelineLayout            layout,
-	 *     uint32_t                    set,
-	 *     uint32_t                    descriptorWriteCount,
-	 *     const VkWriteDescriptorSet *pDescriptorWrites
-	 * );
-	 */
-	/* TODO */
-	(void)si;
-	const std::array writes = {
-		vk::WriteDescriptorSet {
-
+	const auto draw_size = sizeof(DrawCommand) * _draw_instances.size();
+	auto [draw_inst, draw_offset] = db.reserve_space(cmd_size);
+	const std::array buffer_info = {
+		vk::DescriptorBufferInfo {
+		    .buffer = *cmd_inst,
+		    .offset = cmd_offset,
+		    .range = cmd_size,
+		},
+		vk::DescriptorBufferInfo {
+		    .buffer = *draw_inst,
+		    .offset = draw_offset,
+		    .range = draw_size,
 		},
 	};
 
-	auto &cb = si.compute_command_buffer;
-	cb.push_descriptor_set(_sprite_batch_pipe, writes);
+	const std::array writes = {
+		vk::WriteDescriptorSet {
+			.dstBinding = 0,
+			.descriptorCount = 2,
+			.descriptorType = vk::DescriptorType::eStorageBuffer,
+			.pBufferInfo = &buffer_info[0],
+		},
+		vk::WriteDescriptorSet {
+			.dstBinding = 3,
+			.descriptorCount = 1,
+			.descriptorType = vk::DescriptorType::eStorageBuffer,
+			.pBufferInfo = &buffer_info[1],
+		},
+	};
+
+	auto &ccb = si.compute_command_buffer;
+	ccb.push_descriptor_set(_sprite_batch_pipe, writes);
+	ccb.dispatch(_draw_commands.size() / 64, 1, 1);
+
+	auto &cb = si.command_buffer;
+	cb.bind_pipeline(vk::PipelineBindPoint::eGraphics, _instanced_pipe);
+	cb.flush_cameras();
 }
 
 void
-euler::vulkan::Surface::flush_ubo_buffers(Swapchain::Frame &frame)
+euler::vulkan::Surface::flush_ubo_buffers(Swapchain::Frame &frame,
+    Swapchain::SwapchainImage &image)
 {
-	(void)frame;
-
 	std::vector<glm::mat4> ubo_buffers;
 	ubo_buffers.reserve(_cameras.size());
 	for (auto &ci : _cameras) ubo_buffers.emplace_back(ci.projection);
 	assert(!ubo_buffers.empty());
-	frame.descriptor_buffer.copy_data(ubo_buffers);
+	const auto bi = frame.descriptor_buffer.copy_data(ubo_buffers);
+
+	const vk::DescriptorBufferInfo buffer_info {
+		.buffer = **bi.buffer,
+		.offset = bi.offset,
+		.range = sizeof(glm::mat4) * _cameras.size(),
+	};
+
+	const std::array writes = {
+		vk::WriteDescriptorSet {
+		    .dstSet = nullptr,
+		    .descriptorCount = 1,
+		    .descriptorType = vk::DescriptorType::eUniformBuffer,
+		    .pBufferInfo = &buffer_info,
+		},
+	};
+	auto &cb = image.compute_command_buffer;
+	cb.push_descriptor_set(_sprite_batch_pipe, writes);
 }
 
 euler::util::Reference<euler::vulkan::Renderer>

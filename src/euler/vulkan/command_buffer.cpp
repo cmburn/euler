@@ -3,6 +3,8 @@
 #include "euler/vulkan/command_buffer.h"
 #include "pipeline.h"
 
+/* TODO */
+
 euler::vulkan::CommandBuffer::CommandBuffer()
     : _command_buffer(nullptr)
 {
@@ -74,5 +76,16 @@ euler::vulkan::CommandBuffer::end()
 }
 void
 euler::vulkan::CommandBuffer::push_constants()
+{
+}
+void
+euler::vulkan::CommandBuffer::dispatch(const uint32_t x, const uint32_t y, const uint32_t z)
+{
+	(void)x;
+	(void)y;
+	(void)z;
+}
+void
+euler::vulkan::CommandBuffer::flush_cameras()
 {
 }

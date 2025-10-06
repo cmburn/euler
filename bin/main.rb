@@ -2,8 +2,6 @@ class Game < Euler::App::State
   WINDOW_RECT = {x: 50, y: 50, w: 220, h: 220}
   WINDOW_FLAGS = %I[border moveable closeable]
 
-  # 93825003446896
-
   def load
     @tick = 0
     @time = 0.0
