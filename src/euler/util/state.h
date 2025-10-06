@@ -9,6 +9,7 @@
 #include <mruby.h>
 
 #include "euler/util/logger.h"
+#include "euler/util/mruby_exception.h"
 #include "euler/util/object.h"
 #include "euler/util/thread.h"
 
@@ -23,6 +24,8 @@ protected:
 
 public:
 	~State() override = default;
+	[[nodiscard]] virtual MRubyException make_exception(RObject *exc) const
+	    = 0;
 	[[nodiscard]] virtual Reference<Logger> log() const = 0;
 	[[nodiscard]] virtual Reference<Storage> user_storage() const = 0;
 	[[nodiscard]] virtual Reference<Storage> title_storage() const = 0;

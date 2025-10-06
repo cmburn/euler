@@ -1,3 +1,5 @@
 cmake-build-*
+build
 .idea
-vk2derror.txt
+mkmf.log
+extern/mruby/build

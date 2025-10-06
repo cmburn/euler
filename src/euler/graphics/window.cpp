@@ -19,13 +19,13 @@ euler::graphics::Window::~Window()
 	if (_window != nullptr) SDL_DestroyWindow(_window);
 }
 
-size_t
+uint32_t
 euler::graphics::Window::width() const
 {
 	return SDL_GetWindowSurface(_window)->w;
 }
 
-size_t
+uint32_t
 euler::graphics::Window::height() const
 {
 	return SDL_GetWindowSurface(_window)->h;

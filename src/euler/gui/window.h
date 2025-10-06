@@ -1,58 +1,49 @@
 /* SPDX-License-Identifier: ISC */
 
-#ifndef EULER_GUI_WINDOW_H
-#define EULER_GUI_WINDOW_H
+#ifndef EULER_GUI_GUI_H
+#define EULER_GUI_GUI_H
 
 #include <functional>
 
-#include "euler/gui/row.h"
+#include "euler/graphics/window.h"
+#include "euler/gui/button.h"
+#include "euler/gui/widget.h"
 #include "euler/util/object.h"
 
+struct nk_context;
+struct nk_sdl;
+
 namespace euler::gui {
-class Gui;
 
-class Window final : public util::Object {
+/*
+ * Our GUI library is heavily patterned after
+ * https://github.com/keharriso/love-nuklear/ but adapted to mesh better with
+ * our engine architecture and mRuby. Both use Nuklear as the underlying GUI
+ * library.
+ */
+
+class Window : public graphics::Window {
 public:
-	struct Flags {
-		bool border : 1 = false;
-		bool moveable : 1 = false;
-		bool scalable : 1 = false;
-		bool closeable : 1 = false;
-		bool minimizable : 1 = false;
-		bool no_scrollbar : 1 = false;
-		bool title : 1 = false;
-		bool scroll_auto_hide : 1 = false;
-		bool background : 1 = false;
-		bool scale_left : 1 = false;
-		bool no_input : 1 = false;
-	};
-
-	struct Rectangle {
-		float x = 0;
-		float y = 0;
-		float w = 100;
-		float h = 100;
-	};
-
-	Window(const char *title, const Rectangle &rect, const Flags &flags,
-	    const util::Reference<Gui> &gui);
-
-	void row(bool dynamic,
-	    std::function<void(const util::Reference<Row> &)> &fn,
-	    float height = 24.0f, int cols = 1);
-
-	void call(
-	    const std::function<void(const util::Reference<Window> &)> &fn);
-	util::Reference<Gui> gui() const;
+	Window(const util::Reference<util::Logger> &parent,
+	    const std::string &progname);
 	~Window() override;
+	void widget(const char *title,
+	    const std::function<void(const util::Reference<Widget> &)> &fn,
+	    const Widget::Rectangle &rect = {},
+	    const Widget::Flags &flags = {});
+	void button(const char *title,
+	    const std::function<void(const util::Reference<Button> &)> &fn);
+
+	const nk_context *context() const;
+	nk_context *context();
+	vk::raii::Semaphore gui_render() const override;
+	void initialize(const util::Reference<vulkan::Renderer> &renderer);
 
 private:
-	util::WeakReference<Gui> _gui;
-	Rectangle _rect;
-	// float x, y, w, h;
-	Flags _flags;
+	SDL_Window *_window = nullptr;
+	nk_sdl *_sdl = nullptr;
 };
 
 } /* namespace euler::gui */
 
-#endif /* EULER_GUI_WINDOW_H */
+#endif /* EULER_GUI_GUI_H */

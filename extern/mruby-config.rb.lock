@@ -2,3 +2,4 @@
 mruby:
   version: 3.4.0
   release_no: 30400
+  git_commit: '01091984e76bdd0f01cf1b025d1824613a1aebf3'

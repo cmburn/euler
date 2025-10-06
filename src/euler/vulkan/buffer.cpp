@@ -2,6 +2,8 @@
 
 #include "euler/vulkan/buffer.h"
 
+#include <vk_mem_alloc.h>
+
 #include "euler/vulkan/device.h"
 #include "euler/vulkan/physical_device.h"
 #include "euler/vulkan/renderer.h"
@@ -50,7 +52,7 @@ euler::vulkan::Buffer::~Buffer()
 }
 
 euler::vulkan::Buffer
-euler::vulkan::Buffer::load(Device &device, vk::BufferUsageFlags usage,
+euler::vulkan::Buffer::load(Device &device, const vk::BufferUsageFlags usage,
     const std::vector<std::span<const uint8_t>> &data)
 {
 	vk::DeviceSize buffer_size = 0;
@@ -64,7 +66,8 @@ euler::vulkan::Buffer::load(Device &device, vk::BufferUsageFlags usage,
 		std::memcpy(location, d.data(), d.size());
 		location = static_cast<char *>(location) + d.size();
 	}
-	vmaUnmapMemory(stage._device.renderer()->allocator(), stage._allocation);
+	vmaUnmapMemory(stage._device.renderer()->allocator(),
+	    stage._allocation);
 	auto ret = Buffer(device, buffer_size, usage);
 	stage.copy_to(ret);
 	return ret;

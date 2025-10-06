@@ -1,12 +1,24 @@
 require 'pathname'
 
-PRESYM_PATH = Pathname.new(__FILE__).dirname.join('presym')
+PRESYM_PATH = Pathname.new(__FILE__).dirname.join('mruby-presym.txt')
 
 MRuby::Build.new do |conf|
   conf.toolchain
   conf.gembox 'default'
-  #conf.enable_cxx_exception
   conf.enable_cxx_abi
+
+  %W[
+    -O0
+    -g
+    -fno-omit-frame-pointer
+    -fsanitize=address
+    -fsanitize=undefined
+  ].each { |f| conf.cc.flags << f unless conf.cc.flags.include?(f) }
+  %W[
+    -fno-omit-frame-pointer
+    -fsanitize=address
+    -fsanitize=undefined
+  ].each { |f| conf.linker.flags << f unless conf.linker.flags.include?(f) }
   def self.define_rules
     super
 

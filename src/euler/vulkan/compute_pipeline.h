@@ -3,14 +3,17 @@
 #ifndef EULER_VULKAN_COMPUTE_PIPELINE_H
 #define EULER_VULKAN_COMPUTE_PIPELINE_H
 
-#include "euler/util/object.h"
+#include "euler/vulkan/pipeline.h"
 
 namespace euler::vulkan {
-class ComputePipeline final : public util::Object {
+class ComputePipeline final : public Pipeline {
 public:
+	[[nodiscard]] PipelineType
+	pipeline_type() const override
+	{
+		return PipelineType::Compute;
+	}
 };
 } /* namespace euler::vulkan */
 
-
 #endif /* EULER_VULKAN_COMPUTE_PIPELINE_H */
-

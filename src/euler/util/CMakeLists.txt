@@ -1,10 +1,10 @@
 add_library(euler_util STATIC
+        color.cpp
+        color.h
         config.cpp
         config.h
         logger.cpp
         logger.h
-        majordomo.cpp
-        majordomo.h
         object.cpp
         object.h
         state.cpp
@@ -13,10 +13,10 @@ add_library(euler_util STATIC
         storage.h
         thread.cpp
         thread.h
+        mruby_exception.cpp
+        mruby_exception.h
         version.cpp
         version.h
-        worker.cpp
-        worker.h
 )
 
 add_library(euler_util_optparse STATIC
@@ -25,8 +25,7 @@ add_library(euler_util_optparse STATIC
 )
 
 target_link_libraries(euler_util PUBLIC
-        mruby_headers
-        ${MRUBY_LIBRARIES}
+        mruby
         SDL3-static
 )
 
@@ -36,7 +35,6 @@ target_link_libraries(euler_util PRIVATE
 )
 
 target_include_directories(euler_util PUBLIC
-        ${MRUBY_INCLUDE_DIR}
         ${EULER_ROOT}
 )
 

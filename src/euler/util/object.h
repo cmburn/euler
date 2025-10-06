@@ -8,6 +8,7 @@
 #include <cstring>
 
 #include "mruby.h"
+#include "mruby/data.h"
 
 namespace euler::util {
 class State;
@@ -157,7 +158,9 @@ public:
 	    : _object(nullptr)
 	{
 	}
+
 	~Reference() { decrement(_object); }
+
 	explicit Reference(T *object)
 	    : _object(object)
 	{
@@ -219,11 +222,20 @@ public:
 	}
 
 	static Reference
-	unwrap(void *ptr)
+	unwrap(const void *ptr)
 	{
 		auto self = unsafe_cast<Reference>(ptr);
 		self.increment();
 		return self;
+	}
+
+	static Reference
+	unwrap(const mrb_value value)
+	{
+		if (mrb_nil_p(value)) return Reference(nullptr);
+		const auto ptr = DATA_PTR(value);
+		if (ptr == nullptr) return Reference(nullptr);
+		return unwrap(ptr);
 	}
 
 	bool
@@ -231,6 +243,7 @@ public:
 	{
 		return _object == nullptr;
 	}
+
 	bool
 	operator!=(std::nullptr_t) const
 	{
@@ -284,7 +297,6 @@ make_reference(const T *ptr)
 	static_assert(std::is_base_of_v<Object, T>);
 	return Reference<T>(const_cast<T *>(ptr));
 }
-
 } /* namespace Euler::MRuby */
 
 #endif /* EULER_UTIL_OBJECT_H */

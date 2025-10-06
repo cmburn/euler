@@ -80,8 +80,10 @@ public:
 		    /* [Severity::Warn]    = */ "warn",
 		    /* [Severity::Error]   = */ "error",
 		    /* [Severity::Fatal]   = */ "fatal",
-		    /* [Severity::Unknown] = */ "unknown",
+		    /* [Severity::Unknown] = */ "any",
 	    };
+
+	static constexpr size_t MAX_SEVERITY_LENGTH = 5;
 
 	template <typename... Args>
 	void
@@ -213,6 +215,8 @@ public:
 	Logger(std::string_view progname, std::string_view subsystem,
 	    Severity level = Severity::Info,
 	    const std::vector<std::shared_ptr<Sink>> &sinks = default_sinks());
+
+	~Logger() override;
 
 private:
 	// static constexpr std::string_view BLACK = "\033[30m";

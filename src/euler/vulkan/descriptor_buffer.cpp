@@ -26,7 +26,7 @@ euler::vulkan::DescriptorBuffer::begin_frame()
 }
 
 void
-euler::vulkan::DescriptorBuffer::end_frame(vk::raii::CommandBuffer &buf)
+euler::vulkan::DescriptorBuffer::end_frame(CommandBuffer &buf)
 {
 	for (auto &b : _internal_buffers) {
 		vmaUnmapMemory(renderer()->allocator(),
@@ -35,7 +35,7 @@ euler::vulkan::DescriptorBuffer::end_frame(vk::raii::CommandBuffer &buf)
 		if (b.size <= 0) continue;
 		std::array<vk::BufferCopy, 1> regions = {};
 		regions[0].size = (b.size < _page_size) ? b.size : _page_size;
-		buf.copyBuffer(b.stage_buffer.buffer(),
+		buf.command_buffer().copyBuffer(b.stage_buffer.buffer(),
 		    b.device_buffer.buffer(), regions);
 	}
 }
@@ -68,7 +68,7 @@ euler::vulkan::DescriptorBuffer::reserve_space(const vk::DeviceSize size)
 
 void
 euler::vulkan::DescriptorBuffer::record_copy_pipeline_barrier(
-    vk::raii::CommandBuffer &buf)
+    CommandBuffer &buf)
 {
 	record_barrier(vk::AccessFlagBits::eTransferWrite,
 	    vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
@@ -79,7 +79,7 @@ euler::vulkan::DescriptorBuffer::record_copy_pipeline_barrier(
 
 void
 euler::vulkan::DescriptorBuffer::record_compute_pipeline_barrier(
-    vk::raii::CommandBuffer &buf)
+    CommandBuffer &buf)
 {
 #ifdef EULER_ENABLE_COMPUTE_QUEUE
 	const auto qf = renderer()->physical_device().compute_family();
@@ -166,7 +166,7 @@ void
 euler::vulkan::DescriptorBuffer::record_barrier(
     const vk::AccessFlags src_access, const vk::AccessFlags dst_access,
     const uint32_t queue_family, const vk::PipelineStageFlags src_stage,
-    const vk::PipelineStageFlags dst_stage, vk::raii::CommandBuffer &buf)
+    const vk::PipelineStageFlags dst_stage, CommandBuffer &buf)
 {
 	assert(_memory_barriers.size() == _internal_buffers.size());
 	auto barrier_count = 0;
@@ -184,7 +184,7 @@ euler::vulkan::DescriptorBuffer::record_barrier(
 		++barrier_count;
 	}
 
-	buf.pipelineBarrier(src_stage, dst_stage, vk::DependencyFlags(0),
+	buf.command_buffer().pipelineBarrier(src_stage, dst_stage, vk::DependencyFlags(0),
 	    nullptr,
 	    { static_cast<uint32_t>(barrier_count), _memory_barriers.data() },
 	    nullptr);
