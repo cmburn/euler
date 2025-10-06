@@ -1,4 +1,4 @@
-class Game < Euler::Game::State
+class Game < Euler::App::State
   WINDOW_RECT = {x: 50, y: 50, w: 220, h: 220}
   WINDOW_FLAGS = %I[border moveable closeable]
 

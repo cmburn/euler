@@ -51,9 +51,14 @@ unwrap_data(mrb_state *mrb, const mrb_value &value, const mrb_data_type *type)
 	auto ptr = mrb_data_get_ptr(mrb, value, type);
 	if (ptr != nullptr) return static_cast<T *>(ptr);
 	mrb_raisef(mrb, E_TYPE_ERROR, "Expected a %s object",
-	    type->struct_name);
+		type->struct_name);
 	return nullptr;
 }
+
+#define ATTR_IV_READER(SYM) [](mrb_state *state, const mrb_value self) { \
+	return mrb_iv_get(state, self, MRB_IVSYM(SYM));                     \
+}
+
 
 #define ATTR_READER(SELF_TYPE, SELF_DATA, OTHER_DATA, SUPER, EXPR)             \
 	[](mrb_state *mrb, const mrb_value self_value) {                       \

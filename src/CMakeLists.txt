@@ -12,6 +12,8 @@ set(EULER_COMPILE_OPTIONS
         # -Wmissing-field-initializers pitches a fit with Vulkan structs
         -Wno-missing-field-initializers
         -Wno-unused-function
+        -Wno-unknown-warning-option
+        -Wno-unused-private-field
 )
 
 add_subdirectory(euler/app)

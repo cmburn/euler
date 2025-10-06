@@ -12,6 +12,7 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/renderer_blobs.cpp
                 ${CMAKE_CURRENT_BINARY_DIR}/renderer_blobs.cpp
                 ${EULER_SHADER_DIR}
         DEPENDS ${EULER_SHADER_DIR}/generate_blobs.rb ${EULER_SHADERS}
+
         CODEGEN
 )
 

@@ -6,7 +6,7 @@
 #include "euler/vulkan/pipeline.h"
 
 namespace euler::vulkan {
-class GraphicsPipeline final : public Pipeline { };
+//class GraphicsPipeline final : public Pipeline { };
 } /* namespace euler::vulkan */
 
 #endif /* EULER_VULKAN_GRAPHICS_PIPELINE_H */

@@ -25,19 +25,16 @@ add_library(euler_util_optparse STATIC
 )
 
 target_link_libraries(euler_util PUBLIC
-        mruby_headers
+        mruby
         SDL3-static
-        ${MRUBY_LIBRARIES}
 )
 
 target_link_libraries(euler_util PRIVATE
         physfs-static
         euler_util_optparse
-        ${MRUBY_LIBRARIES}
 )
 
 target_include_directories(euler_util PUBLIC
-        ${MRUBY_INCLUDE_DIR}
         ${EULER_ROOT}
 )
 

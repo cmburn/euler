@@ -50,6 +50,7 @@ unless glslc.executable?
   $stderr.puts "'#{glslc}' is not an executable"
 end
 
+
 slangc = begin
   path = ENV['SLANGC_EXE'] || MakeMakefile.find_executable('slangc')
   raise 'Unable to find "slangc" executable' if path.nil? || path.empty?
@@ -70,14 +71,14 @@ puts "Using slangc: #{slangc}"
 
 $shaders = {}
 $constants = {}
-  SLANGC_ARGS = %w[
-    -target spirv
-    -profile spirv_1_4
-    -emit-spirv-directly
-    -fvk-use-entrypoint-name
-    -entry vert_main
-    -entry frag_main
-  ].join(' ')
+SLANGC_ARGS = %w[
+  -target spirv
+  -profile spirv_1_4
+  -emit-spirv-directly
+  -fvk-use-entrypoint-name
+  -entry vert_main
+  -entry frag_main
+].join(' ')
 
 def compile_shader(slangc, glslc, dir, file)
   Dir.chdir(dir) do

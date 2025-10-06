@@ -7,6 +7,8 @@
 #include <mruby/array.h>
 #include <mruby/string.h>
 
+#include "../../../extern/mruby/include/mruby/class.h"
+
 using namespace euler::util;
 using namespace euler::app;
 using Modules = euler::app::State::Modules;
@@ -126,6 +128,7 @@ init_logger(mrb_state *mrb, Modules &mod)
 	mod.util.logger.klass = mrb_define_class_under(mrb, mod.util.module,
 	    "Logger", mrb->object_class);
 	const auto log = mod.util.logger.klass;
+	MRB_SET_INSTANCE_TT(log, MRB_TT_CDATA);
 	mrb_define_method(mrb, log, "severity", logger_severity, 0);
 	mrb_define_method(mrb, log, "severity=", logger_set_severity,
 	    MRB_ARGS_REQ(1));
@@ -218,6 +221,7 @@ init_storage(mrb_state *mrb, Modules &mod)
 	mod.util.storage = mrb_define_class_under(mrb, mod.util.module,
 	    "Storage", mrb->object_class);
 	const auto storage = mod.util.storage;
+	MRB_SET_INSTANCE_TT(storage, MRB_TT_CDATA);
 	mrb_define_method(mrb, storage, "ready?", storage_ready,
 	    MRB_ARGS_NONE());
 	mrb_define_method(mrb, storage, "file_size", storage_file_size,

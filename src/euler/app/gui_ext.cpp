@@ -6,6 +6,7 @@
 #include "euler/gui/button.h"
 
 #include <mruby/hash.h>
+#include <mruby/class.h>
 
 using namespace euler;
 using Modules = app::State::Modules;
@@ -94,6 +95,7 @@ init_button(mrb_state *mrb, Modules &mod)
 	mod.gui.button = mrb_define_class_under(mrb, mod.gui.module, "Button",
 	    mod.gui.element);
 	//const auto button = mod.gui.button;
+	// MRB_SET_INSTANCE_TT(mod.gui.button, MRB_TT_CDATA);
 }
 
 void

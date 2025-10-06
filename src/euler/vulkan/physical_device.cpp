@@ -12,7 +12,7 @@ euler::vulkan::PhysicalDevice::PhysicalDevice(Renderer *renderer,
 	select_queue_families();
 }
 
-euler::vulkan::PhysicalDevice::PhysicalDevice(nullptr_t)
+euler::vulkan::PhysicalDevice::PhysicalDevice(std::nullptr_t)
     : _physical_device(nullptr)
     , _renderer(nullptr)
 {

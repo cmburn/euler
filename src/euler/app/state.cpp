@@ -10,6 +10,7 @@
 #include <SDL3/SDL_events.h>
 #include <mruby/array.h>
 #include <mruby/compile.h>
+#include <mruby/error.h>
 #include <mruby/presym.h>
 #include <mruby/proc.h>
 #include <mruby/string.h>
@@ -58,14 +59,22 @@ sdl_init_flags()
 	return flags;
 }
 
+static void assert_state_integrity(mrb_state *mrb)
+{
+	static mrb_state *first_state = nullptr;
+	if (first_state == nullptr) first_state = mrb;
+	if (mrb == first_state) return;
+	fprintf(stderr, "mrb_state has changed!!\n");
+	abort();
+}
+
 static std::string
-read_full_message(mrb_state *mrb, RObject *exc)
+read_exception(mrb_state *mrb, RObject *exc)
 {
 	// TODO: backtrace support
 	const auto obj = mrb_obj_value(exc);
 	const auto message = mrb_funcall(mrb, obj, "message", 0);
-	if (!mrb_string_p(message))
-		return "Exception message is not a string";
+	if (!mrb_string_p(message)) return "Exception message is not a string";
 	return std::string(RSTRING_PTR(message), RSTRING_LEN(message));
 }
 
@@ -74,6 +83,26 @@ euler::app::State::gv_state()
 {
 	const auto value = mrb_gv_get(_mrb, MRB_GVSYM(state));
 	return value;
+}
+
+void
+euler::app::State::set_ivs()
+{
+	if (!mrb_nil_p(_attributes.system))
+		mrb_gc_unregister(_mrb, _attributes.system);
+	const auto system_data = Data_Wrap_Struct(_mrb, _euler.game.system,
+	    &SYSTEM_TYPE, system().wrap());
+	_attributes.system = mrb_obj_value(system_data);
+	mrb_gc_register(_mrb, _attributes.system);
+	mrb_iv_set(_mrb, _attributes.self, MRB_IVSYM(system),
+	    _attributes.system);
+	if (!mrb_nil_p(_attributes.log))
+		mrb_gc_unregister(_mrb, _attributes.log);
+	const auto log_data = Data_Wrap_Struct(_mrb, _euler.util.logger.klass,
+	    &LOGGER_TYPE, log().wrap());
+	_attributes.log = mrb_obj_value(log_data);
+	mrb_gc_register(_mrb, _attributes.log);
+	mrb_iv_set(_mrb, _attributes.self, MRB_IVSYM(log), _attributes.log);
 }
 
 void
@@ -86,13 +115,13 @@ euler::app::State::assert_state() const
 euler::util::MRubyException
 euler::app::State::make_exception(RObject *exc) const
 {
-	return util::MRubyException(read_full_message(_mrb, exc));
+	return util::MRubyException(read_exception(_mrb, exc));
 }
 
 euler::app::State::State(const util::Config &config)
     : _config(config)
 {
-	_log = util::make_reference<util::Logger>(config.progname, "game",
+	_log = util::make_reference<util::Logger>(config.progname, "app",
 	    config.log_level);
 	_log->debug("Creating state");
 	if (!state_count.try_acquire())
@@ -137,7 +166,7 @@ euler::app::State::verify_gv_state()
 		}                                                              \
 	} while (0)
 	ASSERT_EXISTS(input);
-	ASSERT_EXISTS(update);
+	CHECK_EXISTS(update);
 	CHECK_EXISTS(load);
 	CHECK_EXISTS(draw);
 	CHECK_EXISTS(quit);
@@ -150,11 +179,11 @@ euler::app::State::verify_gv_state()
 bool
 euler::app::State::app_update(const float dt)
 {
+	assert_state_integrity(_mrb);
 	assert(_methods.update);
 	const auto arg = mrb_float_value(_mrb, dt);
 	assert_state();
-	// mrb_funcall_id(_mrb, self_value(), MRB_SYM(update), 1, arg);
-	mrb_funcall_argv(_mrb, self_value(), MRB_SYM(update), 1, &arg);
+	mrb_funcall_id(_mrb, _attributes.self, MRB_SYM(update), 1, arg);
 	assert_state();
 	if (_mrb->exc != nullptr) {
 		log()->error("exc in update: {}", exception_string().value());
@@ -163,22 +192,22 @@ euler::app::State::app_update(const float dt)
 }
 
 bool
-euler::app::State::app_input(const SDL_Event &event)
+euler::app::State::app_input([[maybe_unused]] const SDL_Event &event)
 {
-	if (static_cast<SDL_EventType>(event.type) == SDL_EVENT_QUIT)
-		return false;
-	try {
+	assert_state_integrity(_mrb);
+	return true;
 #if 0
-		assert(_methods.input);
+	if (!_methods.input)
+		return static_cast<SDL_EventType>(event.type) == SDL_EVENT_QUIT;
+	try {
 		const auto arg = sdl_event_to_mrb(util::Reference(this), event);
-		mrb_funcall_id(_mrb, _self_value, MRB_SYM(input), 1, arg);
+		mrb_funcall_id(_mrb, _attributes.self, MRB_SYM(input), 1, arg);
 		if (_mrb->exc != nullptr) {
 			_log->error("Exception in input: {}",
-			    exception_string().value());
+				exception_string().value());
 			_mrb->exc = nullptr;
 			return false;
 		}
-#endif
 		return true;
 	} catch (const std::exception &e) {
 		_log->error("Unhandled exception in input: {}", e.what());
@@ -186,17 +215,22 @@ euler::app::State::app_input(const SDL_Event &event)
 	} catch (mrb_jmpbuf *e) {
 		if (e != (_mrb->jmp)) throw e;
 		_log->error("Unhandled mruby exception in input: {}",
-		    exception_string().value());
+			exception_string().value());
 		return false;
 	}
+	return static_cast<SDL_EventType>(event.type) == SDL_EVENT_QUIT;
+#endif
 }
 
 bool
 euler::app::State::app_draw()
 {
+	assert_state_integrity(_mrb);
 	if (!_methods.draw) return true;
 	try {
+		assert_state();
 		mrb_funcall_id(_mrb, _attributes.self, MRB_SYM(draw), 0);
+		assert_state();
 		if (_mrb->exc != nullptr) {
 			_log->error("Exception in draw: {}",
 			    exception_string().value());
@@ -323,11 +357,12 @@ euler::app::State::load_core()
 	init_vulkan(self);
 	init_graphics(self);
 	init_gui(self);
-	init_game(self);
+	init_app(self);
 	const auto data = Data_Wrap_Struct(_mrb, _euler.game.state, &STATE_TYPE,
 	    self.wrap());
 	_attributes.self = mrb_obj_value(data);
 	mrb_gc_register(_mrb, _attributes.self);
+	set_ivs();
 	_log->debug("Core modules initialized");
 	return true;
 }
@@ -372,8 +407,8 @@ euler::app::State::load_text(std::string_view source, std::string_view data)
 euler::util::nthread_t
 euler::app::State::available_threads() const
 {
-	return std::min(_config.num_threads,
-	    std::thread::hardware_concurrency());
+	static const auto HW_THREADS = std::thread::hardware_concurrency();
+	return std::min(_config.num_threads, HW_THREADS);
 }
 
 bool
@@ -385,6 +420,10 @@ euler::app::State::initialize()
 	if (!load_entry(_config.entry_file)) return false;
 	if (!verify_gv_state()) return false;
 	_attributes.self = gv_state();
+	mrb_gc_register(_mrb, _attributes.self);
+	mrb_gc_register(_mrb, _attributes.system);
+	mrb_iv_set(_mrb, _attributes.self, MRB_IVSYM(system),
+	    _attributes.system);
 	if (!app_load()) return false;
 	return true;
 }
@@ -393,9 +432,9 @@ bool
 euler::app::State::loop(int &exit_code)
 {
 	try {
-		return wrap_call<bool>([&]() {
+		// return wrap_call<bool>([&]() {
 			return update(exit_code); //
-		});
+		// });
 	} catch (const std::exception &e) {
 		_log->error("Unhandled exception in loop: {}", e.what());
 		exit_code = EXIT_FAILURE;

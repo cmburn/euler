@@ -21,15 +21,31 @@ target_include_directories(physfs-static INTERFACE
 
 set(MRUBY_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mruby/build/host/include
         CACHE PATH "Path to the mruby include directory" FORCE)
-add_library(mruby_headers INTERFACE)
-target_include_directories(mruby_headers INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/mruby/build/host/include)
+
+file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/mruby-headers.txt MRUBY_HEADERS)
+file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/mruby-sources.txt MRUBY_SOURCES)
+
+add_library(mruby INTERFACE ${MRUBY_HEADERS} ${MRUBY_SOURCES})
+
 set(MRUBY_LIBRARIES
         ${CMAKE_CURRENT_SOURCE_DIR}/mruby/build/host/lib/libmruby.a
         ${CMAKE_CURRENT_SOURCE_DIR}/mruby/build/host/lib/libmruby_core.a
-        CACHE FILEPATH "Path to the mruby library" FORCE
 )
 
-set(MRUBY_LDFLAGS PARENT_SCOPE -lmruby -lws2_32 -lwsock32 -lws2_32)
+target_include_directories(mruby INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/mruby/build/host/include
+)
+
+target_compile_definitions(mruby INTERFACE
+        MRB_USE_CXX_ABI
+        MRB_USE_CXX_EXCEPTION
+)
+
+target_link_libraries(mruby INTERFACE ${MRUBY_LIBRARIES})
+
+if (WIN32)
+    target_link_libraries(mruby INTERFACE ws2_32 wsock32)
+endif ()
 
 set(PHYSFS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/physfs/src
         CACHE PATH "Path to the physfs include directory" FORCE

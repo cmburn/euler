@@ -18,6 +18,7 @@ $state
 @horizontal
 @keycode
 @length
+@log
 @mime_types
 @mod
 @mouse_x
@@ -38,6 +39,7 @@ $state
 @source
 @start
 @state
+@system
 @text
 @timestamp
 @touch_id
@@ -588,6 +590,7 @@ symbol_active
 symbol_hover
 symbol_normal
 sysreq
+system
 system_theme_changed
 t
 tab

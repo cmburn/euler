@@ -6,19 +6,20 @@ of the dependencies required/build process.
 
 GLM, MRuby, SDL, and Vulkan are the only dependencies that should be exposed
 via headers. Everything else should be hidden in the source files, even at the
-cost of some duplication.
-
-This is to ensure changes can be made for the sake of portability. Platforms
-that do not support these dependencies are not expected to be supported.
-
-Only PC and Switch are targets at the moment.
-
-A minimum of three threads is required. One for SDL, one for Vulkan, and one
-for the mRuby interpreter.
+cost of some duplication. This is to ensure changes can be made for the sake 
+of portability. Platforms that do not support these dependencies are not 
+expected to be supported.
 
 The engine should be fully thread-safe, anything else is a bug.
 
-Each additional game state will require a thread of its own.
+
+The general goals for Euler is to create an engine focused on:
+- Vulkan-based graphics
+- Portability across PC platforms (Windows, Mac, Linux, *BSD and ultimately
+  Nintendo Switch)
+- Tailored for 2D platformers
+- An emphasis on physics simulation
+
 
 # Install Instructions
 
@@ -45,3 +46,31 @@ the root directory, make a `build` directory, change into it, and run
 
 The file in `bin/main.rb` is the sample entry point for the engine. You can run
 it after building with `euler bin/main.rb` from the root source directory.
+
+## Common Build Issues
+
+* If the build fails due to a missing Vulkan version, ensure that the
+  `VULKAN_SDK` environment variable is set to the root of your Vulkan SDK
+  installation, as CMake will sometimes try to use the system's Vulkan
+  instead.
+* If the shader compilation fails due to a missing `glslc` or `slangc` 
+  executable, ensure that the `bin` directory of your Vulkan SDK is passed as
+  a part of your `PATH` environment variable for CMake, as CMake likes to 
+  ignore whatever you set for it in a normal shell.
+* If the bill fails due to being unable to download a SPIR-V dependency, you 
+  may need to set your `LD_LIBRARY_PATH` to include the `lib` directory of your
+  Vulkan SDK installation, as once again CMake likes to ignore whatever you set
+  for it in a normal shell.
+
+# Miscellaneous
+
+This is not intended to be a general-purpose engine. It's been developed for
+a particular project of mine, and tradeoffs have been made to suit that 
+project's needs. Pull requests are welcome, but may be rejected if they
+impede the usage I'm aiming for.
+
+If you're looking for a general-purpose Ruby engine, I recommend [DragonRuby](
+https://dragonruby.org/
+), which has a wonderful community and is very well-maintained. [Love2D](
+https://love2d.org/
+) is also fantastic, and much of Euler's API has been patterned after it.

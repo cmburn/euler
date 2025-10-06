@@ -14,7 +14,7 @@ class Surface;
 class PhysicalDevice final {
 public:
 	PhysicalDevice(Renderer *renderer, vk::raii::PhysicalDevice &&pdev);
-	PhysicalDevice(nullptr_t = nullptr);
+	PhysicalDevice(std::nullptr_t = nullptr);
 
 	const vk::raii::PhysicalDevice &
 	physical_device() const

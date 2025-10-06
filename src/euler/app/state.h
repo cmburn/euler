@@ -186,6 +186,7 @@ public:
 	}
 
 	mrb_value gv_state();
+
 	[[nodiscard]] std::unique_lock<std::mutex>
 	lock_mrb() const override
 	{
@@ -207,9 +208,12 @@ public:
 		return _system;
 	}
 
+	void set_ivs();
+
 	void assert_state() const;
 	util::MRubyException make_exception(RObject *exc) const override;
 	static void wrap_mrb_exception(mrb_state *mrb, RObject *exc);
+
 
 	template <typename T>
 	T
@@ -288,6 +292,7 @@ private:
 	struct {
 		mrb_value self = mrb_nil_value();
 		mrb_value system = mrb_nil_value();
+		mrb_value log = mrb_nil_value();
 	} _attributes;
 	HaveMethod _methods;
 	util::Config _config;

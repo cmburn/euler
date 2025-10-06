@@ -11,7 +11,7 @@ namespace euler::app {
 extern const mrb_data_type STATE_TYPE;
 extern const mrb_data_type SYSTEM_TYPE;
 
-void init_game(util::Reference<State> state);
+void init_app(util::Reference<State> state);
 
 } /* namespace euler::app */
 
