@@ -15,8 +15,8 @@
 #include "euler/graphics/window.h"
 #include "euler/gui/window.h"
 #include "euler/util/config.h"
-#include "euler/util/mruby_exception.h"
 #include "euler/util/logger.h"
+#include "euler/util/mruby_exception.h"
 #include "euler/util/state.h"
 #include "euler/util/storage.h"
 #include "euler/vulkan/renderer.h"
@@ -107,14 +107,14 @@ public:
 			RClass *mouse_motion_event = nullptr;
 			RClass *mouse_button_event = nullptr;
 			RClass *mouse_wheel_event = nullptr;
-			RClass *joy_device_event = nullptr;
-			RClass *joy_axis_event = nullptr;
-			RClass *joy_ball_event = nullptr;
-			RClass *joy_hat_event = nullptr;
-			RClass *joy_button_event = nullptr;
-			RClass *joy_battery_event = nullptr;
+			RClass *joystick_device_event = nullptr;
+			RClass *joystick_axis_motion_event = nullptr;
+			RClass *joystick_ball_motion_event = nullptr;
+			RClass *joystick_hat_motion_event = nullptr;
+			RClass *joystick_button_event = nullptr;
+			RClass *joystick_battery_updated_event = nullptr;
 			RClass *gamepad_device_event = nullptr;
-			RClass *gamepad_axis_event = nullptr;
+			RClass *gamepad_axis_motion_event = nullptr;
 			RClass *gamepad_button_event = nullptr;
 			RClass *gamepad_touchpad_event = nullptr;
 			RClass *gamepad_sensor_event = nullptr;
@@ -132,7 +132,7 @@ public:
 			RClass *render_event = nullptr;
 			RClass *drop_event = nullptr;
 			RClass *clipboard_event = nullptr;
-		} game;
+		} app;
 		struct {
 			RClass *module = nullptr;
 			RClass *camera = nullptr;
@@ -213,7 +213,6 @@ public:
 	void assert_state() const;
 	util::MRubyException make_exception(RObject *exc) const override;
 	static void wrap_mrb_exception(mrb_state *mrb, RObject *exc);
-
 
 	template <typename T>
 	T

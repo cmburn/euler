@@ -10,8 +10,6 @@
 #include <filesystem>
 
 namespace euler::vulkan {
-class Pipeline;
-class Device;
 
 class Shader final : public util::Object {
 public:
@@ -19,12 +17,6 @@ public:
 	Shader(const std::vector<uint8_t> &vertex,
 	    const std::vector<uint8_t> &fragment, uint32_t uniform_size = 0);
 
-private:
-	util::Reference<Pipeline> _pipeline;
-	std::vector<uint8_t> _vertex;
-	std::vector<uint8_t> _fragment;
-	uint32_t _uniform_size;
-	Device &_device;
 };
 
 } /* namespace euler::vulkan */

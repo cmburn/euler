@@ -2,251 +2,116 @@
 
 #include "euler/vulkan/renderer.h"
 
-#include "SDL3/SDL_vulkan.h"
+#include <VK2D/Logger.h>
+#include <VK2D/VK2D.h>
+
+#include "euler/util/logger.h"
+#include "euler/vulkan/surface.h"
 
 namespace util = euler::util;
 
 static std::binary_semaphore renderer_semaphore(1);
 
-static const std::vector<const char *> &
-instance_extensions(const util::Reference<util::Logger> &log)
+static VK2DLogSeverity
+to_vk2d(const util::Logger::Severity severity)
 {
-	static bool initialized = false;
-	static std::mutex vec_mutex;
-	static std::vector<const char *> vec;
-	/* could cause trouble if we're trying to create two at once */
-	std::lock_guard lock(vec_mutex);
-	if (initialized) return vec;
-	uint32_t count;
-	const auto *exts = SDL_Vulkan_GetInstanceExtensions(&count);
-	if (exts == nullptr) {
-		if (log != nullptr) {
-			log->fatal(
-			    "Failed to get SDL Vulkan instance extensions");
-		}
-		fprintf(stderr,
-		    "Failed to get SDL Vulkan instance extensions\n");
-		std::exit(EXIT_FAILURE);
+	switch (severity) {
+	case util::Logger::Severity::Debug: return VK2D_LOG_SEVERITY_DEBUG;
+	case util::Logger::Severity::Info: return VK2D_LOG_SEVERITY_INFO;
+	case util::Logger::Severity::Warn: return VK2D_LOG_SEVERITY_WARN;
+	case util::Logger::Severity::Error: return VK2D_LOG_SEVERITY_ERROR;
+	case util::Logger::Severity::Fatal: return VK2D_LOG_SEVERITY_FATAL;
+	case util::Logger::Severity::Unknown: [[fallthrough]];
+	default: return VK2D_LOG_SEVERITY_UNKNOWN;
 	}
-	vec.reserve(count);
-	for (uint32_t i = 0; i < count; i++) vec.emplace_back(exts[i]);
-	initialized = true;
-	return vec;
 }
 
-static vk::raii::Instance
-make_instance(const util::Reference<util::Logger> &log,
-    const vk::raii::Context &context,
-    const euler::vulkan::Renderer::Config &config)
+static util::Logger::Severity
+from_vk2d(const VK2DLogSeverity severity)
 {
-	if (!renderer_semaphore.try_acquire()) {
-		throw std::runtime_error("Only one vulkan::Renderer may be "
-					 "active at any given time");
+	switch (severity) {
+	case VK2D_LOG_SEVERITY_DEBUG: return util::Logger::Severity::Debug;
+	case VK2D_LOG_SEVERITY_INFO: return util::Logger::Severity::Info;
+	case VK2D_LOG_SEVERITY_WARN: return util::Logger::Severity::Warn;
+	case VK2D_LOG_SEVERITY_ERROR: return util::Logger::Severity::Error;
+	case VK2D_LOG_SEVERITY_FATAL: return util::Logger::Severity::Fatal;
+	case VK2D_LOG_SEVERITY_UNKNOWN: [[fallthrough]];
+	default: return util::Logger::Severity::Unknown;
 	}
-	const vk::ApplicationInfo app_info {
-		.pApplicationName = config.application.c_str(),
-		.applicationVersion = config.version.to_vulkan(),
-		.pEngineName = "euler",
-		.engineVersion = util::version().to_vulkan(),
-		.apiVersion = vk::ApiVersion14,
-	};
-	static constexpr const char *validation_layers[] = {
-		"VK_LAYER_KHRONOS_validation",
-	};
-	auto sdl_exts = instance_extensions(log);
-	// sdl_exts.push_back("VK_KHR_push_descriptor");
-
-	const vk::InstanceCreateInfo create_info {
-		.pApplicationInfo = &app_info,
-		.enabledLayerCount = 1,
-		.ppEnabledLayerNames = validation_layers,
-		.enabledExtensionCount = static_cast<uint32_t>(sdl_exts.size()),
-		.ppEnabledExtensionNames = sdl_exts.data(),
-	};
-
-	auto inst = vk::raii::Instance(context, create_info);
-	return inst;
-}
-
-euler::vulkan::Renderer::Config
-euler::vulkan::Renderer::default_config()
-{
-	return Config {};
-}
-
-euler::vulkan::Renderer::Renderer(const Config &config)
-    : _instance(nullptr)
-    , _config(config)
-{
-}
-
-std::optional<euler::vulkan::Renderer::ShaderData>
-euler::vulkan::Renderer::shader_data(std::string_view key)
-{
-	auto builtin = load_builtin_shader(key);
-	if (builtin.has_value()) return *builtin;
-	if (!_runtime_shaders.contains(std::string(key))) return std::nullopt;
-	return _runtime_shaders.at(std::string(key));
-}
-
-std::optional<vk::raii::ShaderModule>
-euler::vulkan::Renderer::load_shader(std::string_view key)
-{
-	auto data = shader_data(key);
-	if (!data.has_value()) return std::nullopt;
-	const vk::ShaderModuleCreateInfo ci = {
-		.codeSize = data->size(),
-		.pCode = reinterpret_cast<const uint32_t *>(data->data()),
-	};
-	return _device.device().createShaderModule(ci);
-}
-
-void
-euler::vulkan::Renderer::initialize(const util::Reference<Surface> &surface)
-{
-	_context = make_context();
-	_instance = make_instance(surface->log(), _context, config());
-	_surface = surface;
-	_log = surface->log();
-	_physical_device = create_physical_device();
-	_log->info("Using queue family {} for graphics",
-	    _physical_device.graphics_family());
-	_log->info("Using queue family {} for compute",
-	    _physical_device.compute_family());
-	std::construct_at(&_device, create_device());
-	surface->initialize_vulkan(util::Reference(this));
 }
 
 euler::vulkan::Renderer::~Renderer() { renderer_semaphore.release(); }
 
-vk::raii::PhysicalDevice
-euler::vulkan::Renderer::select_physical_device()
+void
+euler::vulkan::Renderer::initialize(const util::Reference<Surface> &surface)
 {
-	auto devices = _instance.enumeratePhysicalDevices();
-	if (devices.empty())
-		_log->fatal("Failed to enumerate physical devices");
-
-	/* prefer a discrete gpu */
-	std::optional<vk::raii::PhysicalDevice> discrete_device;
-	std::optional<vk::raii::PhysicalDevice> selected_device;
-
-	for (const auto &d : devices) {
-		auto properties = d.getProperties();
-		_log->info("Found device with ID {} ({})", properties.deviceID,
-		    properties.deviceName.data());
-		if (_config.preferred_gpu.has_value()
-		    && properties.deviceID == _config.preferred_gpu.value()) {
-			selected_device = std::move(d);
-			break;
-		}
-		if (properties.deviceType
-			== vk::PhysicalDeviceType::eDiscreteGpu
-		    && !discrete_device.has_value()) {
-			discrete_device = std::move(d);
-		}
+	_log->info("Initializing Vulkan renderer");
+	if (!renderer_semaphore.try_acquire()) {
+		_log->error("Attempted to initialize multiple renderers");
+		throw std::runtime_error("Multiple renderer initialization");
 	}
-	if (selected_device.has_value()) return selected_device.value();
-	if (_config.preferred_gpu.has_value()) {
-		_log->info(
-		    "Unable to find user-specified graphics device with ID {}",
-		    _config.preferred_gpu.value());
-	}
-	if (discrete_device.has_value()) return discrete_device.value();
-	return devices.at(0);
-}
-
-euler::vulkan::PhysicalDevice
-euler::vulkan::Renderer::create_physical_device()
-{
-	auto pdev = select_physical_device();
-	log()->info("Using device: {}", pdev.getProperties().deviceName.data());
-	return { this, std::move(pdev) };
-}
-
-vk::raii::Device
-euler::vulkan::Renderer::select_device()
-{
-	static constexpr std::array EXTS = {
-		vk::KHRDynamicRenderingExtensionName,
-		vk::KHRPushDescriptorExtensionName,
-		vk::KHRSpirv14ExtensionName,
-		vk::KHRSwapchainExtensionName,
+	_initialized = true;
+	_surface = surface.weaken();
+	static constexpr VK2DRendererConfig config = {
+		.msaa = VK2D_MSAA_16X,
+		.screenMode = VK2D_SCREEN_MODE_VSYNC,
+		.filterMode = VK2D_FILTER_TYPE_NEAREST,
+	};
+	static constexpr VK2DStartupOptions startup_options = {
+		.enableDebug = true,
+		.stdoutLogging = true,
+		.quitOnError = false,
+		.errorFile = nullptr,
+		.maxTextures = std::numeric_limits<uint16_t>::max(),
+		.enableNuklear = true,
+		.vramPageSize = 0,
 	};
 
-	static constexpr float PRIORITY = 1.0f;
-	const auto &pdev = _physical_device.physical_device();
-	auto props = pdev.getQueueFamilyProperties();
-	std::array queue_info = {
-		(vk::DeviceQueueCreateInfo) {
-		    .queueFamilyIndex = _physical_device.graphics_family(),
-		    .queueCount = 1,
-		    .pQueuePriorities = &PRIORITY,
-		},
-		(vk::DeviceQueueCreateInfo) {
-		    .queueFamilyIndex = _physical_device.compute_family(),
-		    .queueCount = 1,
-		    .pQueuePriorities = &PRIORITY,
-		},
+	/* ReSharper disable CppParameterMayBeConstPtrOrRef */
+	_vk2d_logger = new VK2DLogger {
+		.log =
+		    [](void *ctx, const VK2DLogSeverity severity,
+			const char *message) {
+			    const auto log
+				= util::Reference<util::Logger>::unwrap(ctx);
+			    log->log(from_vk2d(severity), "{}", message);
+		    },
+		.destroy =
+		    [](void *ctx) {
+			    auto log
+				= util::Reference<util::Logger>::unwrap(ctx);
+			    log = nullptr;
+			    (void)log;
+		    },
+		.severityFn =
+		    [](void *ctx) {
+			    const auto log
+				= util::Reference<util::Logger>::unwrap(ctx);
+			    return to_vk2d(log->severity());
+		    },
+		.context = _log.wrap(),
 	};
+	vk2dSetLogger(_vk2d_logger);
 
-	uint32_t queue_size = queue_info.size();
-	if (_physical_device.compute_family() == PhysicalDevice::NO_QUEUE)
-		--queue_size;
-
-	// static const vk::StructureChain<vk::PhysicalDeviceFeatures2,
-	//     vk::PhysicalDeviceVulkan12Features,
-	//     vk::PhysicalDeviceDynamicRenderingFeatures,
-	//     vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>
-	//     FEATURE_CHAIN = {
-	// 	    {},
-	// 	    {},
-	// 	    {},
-	// 	    { .extendedDynamicState = true },
-	//     };
-
-	static const vk::StructureChain<vk::PhysicalDeviceFeatures2,
-	    vk::PhysicalDeviceVulkan12Features,
-	    vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>
-	    FEATURE_CHAIN = {
-		    {},
-		    {},
-		    { .extendedDynamicState = true },
-	    };
-
-	const vk::DeviceCreateInfo create_info = {
-		.pNext = &FEATURE_CHAIN.get<vk::PhysicalDeviceFeatures2>(),
-		.queueCreateInfoCount = queue_size,
-		.pQueueCreateInfos = queue_info.data(),
-		.enabledLayerCount = 0,
-		.ppEnabledLayerNames = nullptr,
-		.enabledExtensionCount = static_cast<uint32_t>(EXTS.size()),
-		.ppEnabledExtensionNames = EXTS.data(),
-	};
-
-	return pdev.createDevice(create_info);
+	/* ReSharper restore CppParameterMayBeConstPtrOrRef */
+	vk2dRendererInit(surface->window(), config, &startup_options);
+	_log->info("Vulkan renderer initialized");
+	surface->set_renderer(util::Reference(this));
 }
 
-euler::vulkan::Device
-euler::vulkan::Renderer::create_device()
+nk_context *
+euler::vulkan::Renderer::gui_context()
 {
-	return Device { util::Reference(this), select_device() };
+	return vk2dGuiContext();
 }
 
-vk::raii::Context
-euler::vulkan::Renderer::make_context()
+const nk_context *
+euler::vulkan::Renderer::gui_context() const
 {
-	return vk::raii::Context();
+	return vk2dGuiContext();
 }
-
-const uint8_t *
-euler_vulkan_renderer_shader_data(euler_vulkan_renderer *renderer,
-    const char *key, size_t *size_out)
+util::Reference<euler::vulkan::Surface>
+euler::vulkan::Renderer::surface() const
 {
-	const auto out = renderer->shader_data(key);
-	if (!out.has_value()) {
-		*size_out = 0;
-		return nullptr;
-	}
-	*size_out = out->size();
-	return out->data();
+	return _surface.strengthen();
 }

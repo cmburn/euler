@@ -3,6 +3,7 @@
 #ifndef EULER_UTIL_COLOR_H
 #define EULER_UTIL_COLOR_H
 
+#include <array>
 #include <cstdint>
 #include <SDL3/SDL_pixels.h>
 
@@ -107,6 +108,17 @@ public:
 	operator!=(const Color &other) const
 	{
 		return !(*this == other);
+	}
+
+	[[nodiscard]] std::array<float, 4>
+	to_float_array() const
+	{
+		return {
+			_red / 255.0f,
+			_green / 255.0f,
+			_blue / 255.0f,
+			_alpha / 255.0f,
+		};
 	}
 
 private:

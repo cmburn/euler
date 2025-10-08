@@ -8,116 +8,45 @@
 #else
 #include <thread>
 
-#include <vulkan/vulkan_raii.hpp>
-
 #include "euler/util/logger.h"
 #include "euler/util/object.h"
 #include "euler/util/version.h"
-#include "euler/vulkan/device.h"
-#include "euler/vulkan/physical_device.h"
-#include "euler/vulkan/surface.h"
-#include "euler/vulkan/texture.h"
-#include "euler/vulkan/vma_fwd.h"
+
+struct nk_context;
+
+#ifdef EULER_INTERNAL_BUILD
+typedef struct VK2DLogger VK2DLogger;
+#else
+typedef void VK2DLogger; /* opaque */
+#endif
 
 namespace euler::vulkan {
+class Surface;
+
 /* There can be multiple states per Euler instance, but there can only ever be
  * one renderer. */
 class Renderer final : public util::Object {
 	friend class Surface;
 
 public:
-	static constexpr auto FRAMES_IN_FLIGHT = Swapchain::FRAMES_IN_FLIGHT;
-	struct Config {
-		util::Version version;
-		std::string application;
-		std::optional<uint32_t> preferred_gpu;
-		vk::SampleCountFlagBits msaa = vk::SampleCountFlagBits::e1;
-		vk::PresentModeKHR present_mode = vk::PresentModeKHR::eFifo;
-	};
-	using ShaderData = std::span<const uint8_t>;
-	static Config default_config();
-
-	Renderer(const Config &config = default_config());
-	std::optional<ShaderData> shader_data(std::string_view key);
-	std::optional<vk::raii::ShaderModule> load_shader(std::string_view key);
-	void initialize(const util::Reference<Surface> &surface);
-
-	util::Reference<Surface> surface() const;
-
-	const Config &
-	config() const
+	Renderer(const util::Reference<util::Logger> &log)
+	    : _log(log->copy("vulkan"))
 	{
-		return _config;
 	}
-
-	VmaAllocator
-	allocator() const
-	{
-		return _allocator;
-	}
-
-	const PhysicalDevice &
-	physical_device() const
-	{
-		return _physical_device;
-	}
-
-	const Device &
-	device() const
-	{
-		return _device;
-	}
-
-	PhysicalDevice &
-	physical_device()
-	{
-		return _physical_device;
-	}
-
-	Device &
-	device()
-	{
-		return _device;
-	}
-
-	util::Reference<util::Logger>
-	log() const
-	{
-		return _log;
-	}
-
-	const vk::raii::Instance &
-	instance() const
-	{
-		return _instance;
-	}
-
-	vk::raii::Instance &
-	instance()
-	{
-		return _instance;
-	}
-
 	~Renderer() override;
 
-private:
-	vk::raii::PhysicalDevice select_physical_device();
-	PhysicalDevice create_physical_device();
-	vk::raii::Device select_device();
-	Device create_device();
-	static std::optional<ShaderData> load_builtin_shader(
-	    std::string_view key);
-	static vk::raii::Context make_context();
+	void initialize(const util::Reference<Surface> &surface);
 
-	std::unordered_map<std::string, std::vector<uint8_t>> _runtime_shaders;
-	vk::raii::Context _context = {};
-	vk::raii::Instance _instance;
-	Config _config;
-	util::Reference<Surface> _surface;
+	nk_context *gui_context();
+	const nk_context *gui_context() const;
+
+private:
+	util::Reference<Surface> surface() const;
+
+	util::WeakReference<Surface> _surface;
 	util::Reference<util::Logger> _log;
-	PhysicalDevice _physical_device;
-	Device _device;
-	VmaAllocator _allocator = nullptr;
+	VK2DLogger *_vk2d_logger = nullptr;
+	bool _initialized = false;
 };
 } /* namespace euler::vulkan */
 

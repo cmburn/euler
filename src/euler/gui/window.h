@@ -26,7 +26,7 @@ class Window : public graphics::Window {
 public:
 	Window(const util::Reference<util::Logger> &parent,
 	    const std::string &progname);
-	~Window() override;
+	~Window() override = default;
 	void widget(const char *title,
 	    const std::function<void(const util::Reference<Widget> &)> &fn,
 	    const Widget::Rectangle &rect = {},
@@ -34,14 +34,17 @@ public:
 	void button(const char *title,
 	    const std::function<void(const util::Reference<Button> &)> &fn);
 
-	const nk_context *context() const;
-	nk_context *context();
-	vk::raii::Semaphore gui_render() const override;
-	void initialize(const util::Reference<vulkan::Renderer> &renderer);
+	const nk_context *
+	context() const
+	{
+		return renderer()->gui_context();
+	}
 
-private:
-	SDL_Window *_window = nullptr;
-	nk_sdl *_sdl = nullptr;
+	nk_context *
+	context()
+	{
+		return renderer()->gui_context();
+	}
 };
 
 } /* namespace euler::gui */

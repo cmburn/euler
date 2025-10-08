@@ -1,11 +1,12 @@
 /* SPDX-License-Identifier: ISC */
 
 #include "euler/app/game_ext.h"
-#include "euler/app/util_ext.h"
 
 #include <mruby/class.h>
+#include <mruby/variable.h>
 
-#include "mruby/variable.h"
+#include "euler/app/util_ext.h"
+#include "euler/app/event.h"
 
 using namespace euler::app;
 using Modules = State::Modules;
@@ -23,6 +24,9 @@ static constexpr auto state_title_storage = ATTR_READER(State, STATE_TYPE,
 		STORAGE_TYPE, mod.util.storage, self->title_storage());
 // static constexpr auto state_system = ATTR_IV_READER(system);
 #define WRAP(ARG) mrb_float_value(mrb, ARG)
+// static cosntexpr auto system_fps = ATTR_READER(System, SYSTEM_TYPE,
+// 	mrb_float, mrb->float_class, self->fps());
+
 static constexpr auto system_fps
 	= [](mrb_state *mrb, const mrb_value self_value) {
 	const auto state = State::get(mrb);
@@ -62,9 +66,9 @@ state_allocate(mrb_state *mrb, mrb_value self)
 static void
 init_system(mrb_state *mrb, Modules &mod)
 {
-	mod.game.system = mrb_define_class_under(mrb, mod.game.module, "System",
+	mod.app.system = mrb_define_class_under(mrb, mod.app.module, "System",
 		mrb->object_class);
-	const auto system = mod.game.system;
+	const auto system = mod.app.system;
 	mrb_define_method(mrb, system, "fps", system_fps, MRB_ARGS_NONE());
 	MRB_SET_INSTANCE_TT(system, MRB_TT_CDATA);
 }
@@ -72,9 +76,9 @@ init_system(mrb_state *mrb, Modules &mod)
 static void
 init_state(mrb_state *mrb, Modules &mod)
 {
-	mod.game.state = mrb_define_class_under(mrb, mod.game.module, "State",
+	mod.app.state = mrb_define_class_under(mrb, mod.app.module, "State",
 		mrb->object_class);
-	const auto state = mod.game.state;
+	const auto state = mod.app.state;
 	MRB_SET_INSTANCE_TT(state, MRB_TT_CDATA);
 	mrb_define_method(mrb, state, "log", state_log, MRB_ARGS_NONE());
 	mrb_define_method(mrb, state, "user_storage", state_user_storage,
@@ -93,8 +97,9 @@ euler::app::init_app(util::Reference<State> state)
 	state->log()->info("Initializing Euler::App...");
 	const auto mrb = state->mrb();
 	auto &mod = state->module();
-	mod.game.module = mrb_define_module_under(mrb, mod.module, "App");
+	mod.app.module = mrb_define_module_under(mrb, mod.module, "App");
 	init_state(mrb, mod);
 	init_system(mrb, mod);
+	init_app_event(state);
 	state->log()->info("Euler::Util initialized");
 }

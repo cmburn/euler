@@ -11,6 +11,7 @@ class Window final : public gui::Window {
 public:
 	Window(const util::Reference<util::Logger> &log, const std::string &progname);
 	~Window() override = default;
+
 };
 } /* namespace euler::app */
 

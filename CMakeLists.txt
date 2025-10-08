@@ -26,6 +26,10 @@ add_link_options(
         -fsanitize=undefined
 )
 
+add_compile_definitions(
+        MRB_USE_DEBUG_HOOK
+)
+
 # TODO: not this
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/extern/SDL/include)
 

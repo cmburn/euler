@@ -24,7 +24,7 @@ public:
 	    | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY;
 	static constexpr int DEFAULT_WIDTH = 1280;
 	static constexpr int DEFAULT_HEIGHT = 720;
-	Window(const util::Reference<util::Logger> &log,
+	explicit Window(const util::Reference<util::Logger> &log,
 	    const std::string &title = "Euler Game", int width = DEFAULT_WIDTH,
 	    int height = DEFAULT_HEIGHT, SDL_WindowFlags flags = DEFAULT_FLAGS);
 	~Window() override;
@@ -44,21 +44,27 @@ public:
 		return _window;
 	}
 
-	InputGuard
-	input_guard()
-	{
-		start_input();
-		return InputGuard { util::Reference<Window>(this) };
-	}
-
 	util::Reference<util::Logger>
 	log() const override
 	{
 		return _log;
 	}
 
+	/* Returns true when a non-quit event is received, otherwise returns
+	 * false */
+	bool poll_event(SDL_Event &e,
+	    const std::function<bool(SDL_Event &)> &fn);
+
 private:
 	friend struct InputGuard;
+
+	InputGuard
+	input_guard()
+	{
+		start_input();
+		return InputGuard { util::Reference(this) };
+	}
+
 	void start_input();
 	void end_input();
 

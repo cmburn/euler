@@ -780,7 +780,7 @@ euler::app::sdl_event_to_mrb(util::Reference<State> state,
 {
 	auto mrb = state->mrb();
 	mrb_value value = mrb_nil_value();
-	auto mod = state->module().game;
+	auto mod = state->module().app;
 	auto arena_index = mrb_gc_arena_save(mrb);
 	const auto type = sdl_event_sym(mrb, event);
 	const auto type_val = mrb_symbol_value(type);
@@ -872,12 +872,7 @@ euler::app::sdl_event_to_mrb(util::Reference<State> state,
 	case SDL_EVENT_WINDOW_LEAVE_FULLSCREEN:
 	case SDL_EVENT_WINDOW_DESTROYED: [[fallthrough]];
 	case SDL_EVENT_WINDOW_HDR_STATE_CHANGED:
-		do {
-			value = mrb_obj_new(mrb, mod.window_event, 0, nullptr);
-			assert(!mrb_nil_p(value));
-			SET_INT_IV(timestamp, common.timestamp);
-			mrb_iv_set(mrb, value, MRB_IVSYM(type), type_val);
-		} while (0);
+		COMMON_INIT(window);
 		SET_INT_IV(window_id, window.windowID);
 		switch (event.type) {
 		case SDL_EVENT_WINDOW_MOVED:
@@ -912,7 +907,7 @@ euler::app::sdl_event_to_mrb(util::Reference<State> state,
 		SET_INT_IV(window_id, text.windowID);
 		SET_CSTRING_IV(text, text.text);
 		break;
-	case SDL_EVENT_KEYMAP_CHANGED: break;
+	case SDL_EVENT_KEYMAP_CHANGED:
 	case SDL_EVENT_KEYBOARD_ADDED: [[fallthrough]];
 	case SDL_EVENT_KEYBOARD_REMOVED:
 		COMMON_INIT(keyboard_device);
@@ -1004,27 +999,27 @@ euler::app::sdl_event_to_mrb(util::Reference<State> state,
 		SET_INT_IV(which, mdevice.which);
 		break;
 	case SDL_EVENT_JOYSTICK_AXIS_MOTION:
-		COMMON_INIT(joy_axis);
+		COMMON_INIT(joystick_axis_motion);
 		SET_INT_IV(which, jaxis.which);
 		SET_INT_IV(axis, jaxis.axis);
 		SET_FLOAT_IV(value, jaxis.value / 32768.0f);
 		break;
 	case SDL_EVENT_JOYSTICK_BALL_MOTION:
-		COMMON_INIT(joy_ball);
+		COMMON_INIT(joystick_ball_motion);
 		SET_INT_IV(which, jball.which);
 		SET_INT_IV(ball, jball.ball);
 		SET_FLOAT_IV(xrel, jball.xrel / 32768.0f);
 		SET_FLOAT_IV(yrel, jball.yrel / 32768.0f);
 		break;
 	case SDL_EVENT_JOYSTICK_HAT_MOTION:
-		COMMON_INIT(joy_hat);
+		COMMON_INIT(joystick_hat_motion);
 		SET_INT_IV(which, jhat.which);
 		SET_INT_IV(hat, jhat.hat);
 		SET_SYM_IV(value, sdl_jhat_sym(event.jhat.value));
 		break;
 	case SDL_EVENT_JOYSTICK_BUTTON_DOWN: [[fallthrough]];
 	case SDL_EVENT_JOYSTICK_BUTTON_UP:
-		COMMON_INIT(joy_button);
+		COMMON_INIT(joystick_button);
 		SET_INT_IV(which, jbutton.which);
 		SET_INT_IV(button, jbutton.button);
 		SET_BOOL_IV(down, jbutton.down);
@@ -1032,17 +1027,17 @@ euler::app::sdl_event_to_mrb(util::Reference<State> state,
 	case SDL_EVENT_JOYSTICK_ADDED:
 	case SDL_EVENT_JOYSTICK_REMOVED: [[fallthrough]];
 	case SDL_EVENT_JOYSTICK_UPDATE_COMPLETE:
-		COMMON_INIT(joy_device);
+		COMMON_INIT(joystick_device);
 		SET_INT_IV(which, jdevice.which);
 		break;
 	case SDL_EVENT_JOYSTICK_BATTERY_UPDATED:
-		COMMON_INIT(joy_battery);
+		COMMON_INIT(joystick_battery_updated);
 		SET_INT_IV(which, jbattery.which);
 		SET_SYM_IV(state, sdl_power_sym(event.jbattery.state));
 		SET_INT_IV(percent, jbattery.percent);
 		break;
 	case SDL_EVENT_GAMEPAD_AXIS_MOTION:
-		COMMON_INIT(gamepad_axis);
+		COMMON_INIT(gamepad_axis_motion);
 		SET_INT_IV(which, gaxis.which);
 		SET_SYM_IV(axis,
 		    sdl_gamepad_axis_sym(
@@ -1088,7 +1083,6 @@ euler::app::sdl_event_to_mrb(util::Reference<State> state,
 			mrb_ary_push(mrb, data_ary, val);
 		}
 		mrb_iv_set(mrb, value, mrb_intern_lit(mrb, "data"), data_ary);
-		SET_INT_IV(timestamp, gsensor.timestamp);
 		break;
 	}
 	case SDL_EVENT_FINGER_DOWN:
@@ -1228,7 +1222,223 @@ euler::app::sdl_event_to_mrb(util::Reference<State> state,
 }
 
 void
-euler::app::init_game_event(util::Reference<State> state)
+euler::app::init_app_event(util::Reference<State> state)
 {
-	(void)state;
+	const auto mrb = state->mrb();
+	auto &app = state->module().app;
+
+#define DEFINE_ATTR_READER(TYPE, ATTR)                                         \
+	do {                                                                   \
+		mrb_define_method_id(mrb, (app.TYPE##_event), MRB_SYM(ATTR),   \
+		    ATTR_IV_READER(ATTR), 0);                                  \
+	} while (0)
+
+#define DEFINE_EVENT(TYPE, NAME)                                               \
+	do {                                                                   \
+		(app.TYPE##_event) = mrb_define_class_under(mrb, app.module,   \
+		    (#NAME "Event"), mrb->object_class);                       \
+		DEFINE_ATTR_READER(TYPE, timestamp);                           \
+		DEFINE_ATTR_READER(TYPE, type);                                \
+	} while (0)
+
+	DEFINE_EVENT(quit, Quit);
+
+	DEFINE_EVENT(display, Display);
+	DEFINE_ATTR_READER(display, display_id);
+	DEFINE_ATTR_READER(display, orientation);
+
+	DEFINE_EVENT(window, Window);
+	DEFINE_ATTR_READER(window, window_id);
+	DEFINE_ATTR_READER(window, x);
+	DEFINE_ATTR_READER(window, y);
+	DEFINE_ATTR_READER(window, width);
+	DEFINE_ATTR_READER(window, height);
+	DEFINE_ATTR_READER(window, display_id);
+
+	DEFINE_EVENT(keyboard, Keyboard);
+	DEFINE_ATTR_READER(keyboard, down);
+	DEFINE_ATTR_READER(keyboard, repeat);
+	DEFINE_ATTR_READER(keyboard, window_id);
+	DEFINE_ATTR_READER(keyboard, which);
+	DEFINE_ATTR_READER(keyboard, raw);
+	DEFINE_ATTR_READER(keyboard, scancode);
+	DEFINE_ATTR_READER(keyboard, keycode);
+	DEFINE_ATTR_READER(keyboard, mod);
+
+	DEFINE_EVENT(text_input, TextInput);
+	DEFINE_ATTR_READER(text_input, window_id);
+	DEFINE_ATTR_READER(text_input, text);
+
+	DEFINE_EVENT(keyboard_device, KeyboardDevice);
+	DEFINE_ATTR_READER(keyboard_device, which);
+
+	DEFINE_EVENT(text_editing, TextEditing);
+	DEFINE_ATTR_READER(text_editing, text);
+	DEFINE_ATTR_READER(text_editing, window_id);
+	DEFINE_ATTR_READER(text_editing, start);
+	DEFINE_ATTR_READER(text_editing, length);
+
+	DEFINE_EVENT(text_editing_candidates, TextEditingCandidates);
+	DEFINE_ATTR_READER(text_editing_candidates, window_id);
+	DEFINE_ATTR_READER(text_editing_candidates, selected_candidate);
+	DEFINE_ATTR_READER(text_editing_candidates, horizontal);
+	DEFINE_ATTR_READER(text_editing_candidates, candidates);
+
+	DEFINE_EVENT(mouse_motion, MouseMotion);
+	DEFINE_ATTR_READER(mouse_motion, window_id);
+	DEFINE_ATTR_READER(mouse_motion, which);
+	DEFINE_ATTR_READER(mouse_motion, state);
+	DEFINE_ATTR_READER(mouse_motion, x);
+	DEFINE_ATTR_READER(mouse_motion, y);
+	DEFINE_ATTR_READER(mouse_motion, xrel);
+	DEFINE_ATTR_READER(mouse_motion, yrel);
+
+	DEFINE_EVENT(mouse_button, MouseButton);
+	DEFINE_ATTR_READER(mouse_button, window_id);
+	DEFINE_ATTR_READER(mouse_button, which);
+	DEFINE_ATTR_READER(mouse_button, button);
+	DEFINE_ATTR_READER(mouse_button, pressed);
+	DEFINE_ATTR_READER(mouse_button, clicks);
+	DEFINE_ATTR_READER(mouse_button, x);
+	DEFINE_ATTR_READER(mouse_button, y);
+
+	DEFINE_EVENT(mouse_wheel, MouseWheel);
+	DEFINE_ATTR_READER(mouse_wheel, window_id);
+	DEFINE_ATTR_READER(mouse_wheel, which);
+	DEFINE_ATTR_READER(mouse_wheel, x);
+	DEFINE_ATTR_READER(mouse_wheel, y);
+	DEFINE_ATTR_READER(mouse_wheel, direction);
+	DEFINE_ATTR_READER(mouse_wheel, mouse_x);
+	DEFINE_ATTR_READER(mouse_wheel, mouse_y);
+
+	DEFINE_EVENT(mouse_device, MouseDevice);
+	DEFINE_ATTR_READER(mouse_device, which);
+
+	DEFINE_EVENT(joystick_axis_motion, JoystickAxisMotion);
+	DEFINE_ATTR_READER(joystick_axis_motion, which);
+	DEFINE_ATTR_READER(joystick_axis_motion, axis);
+	DEFINE_ATTR_READER(joystick_axis_motion, value);
+
+	DEFINE_EVENT(joystick_ball_motion, JoystickBallMotion);
+	DEFINE_ATTR_READER(joystick_ball_motion, which);
+	DEFINE_ATTR_READER(joystick_ball_motion, ball);
+	DEFINE_ATTR_READER(joystick_ball_motion, xrel);
+	DEFINE_ATTR_READER(joystick_ball_motion, yrel);
+
+	DEFINE_EVENT(joystick_hat_motion, JoystickHatMotion);
+	DEFINE_ATTR_READER(joystick_hat_motion, which);
+	DEFINE_ATTR_READER(joystick_hat_motion, hat);
+	DEFINE_ATTR_READER(joystick_hat_motion, value);
+
+	DEFINE_EVENT(joystick_button, JoystickButton);
+	DEFINE_ATTR_READER(joystick_button, which);
+	DEFINE_ATTR_READER(joystick_button, button);
+	DEFINE_ATTR_READER(joystick_button, down);
+
+	DEFINE_EVENT(joystick_device, JoystickDevice);
+	DEFINE_ATTR_READER(joystick_device, which);
+
+	DEFINE_EVENT(joystick_battery_updated, JoystickBatteryEvent);
+	DEFINE_ATTR_READER(joystick_battery_updated, which);
+	DEFINE_ATTR_READER(joystick_battery_updated, state);
+
+	DEFINE_EVENT(gamepad_axis_motion, GamepadAxisMotion);
+	DEFINE_ATTR_READER(gamepad_axis_motion, which);
+	DEFINE_ATTR_READER(gamepad_axis_motion, axis);
+	DEFINE_ATTR_READER(gamepad_axis_motion, value);
+
+	DEFINE_EVENT(gamepad_button, GamepadButton);
+	DEFINE_ATTR_READER(gamepad_button, which);
+	DEFINE_ATTR_READER(gamepad_button, button);
+	DEFINE_ATTR_READER(gamepad_button, down);
+
+	DEFINE_EVENT(gamepad_device, GamepadDevice);
+	DEFINE_ATTR_READER(gamepad_device, which);
+
+	DEFINE_EVENT(gamepad_touchpad, GamepadTouchpad);
+	DEFINE_ATTR_READER(gamepad_touchpad, which);
+	DEFINE_ATTR_READER(gamepad_touchpad, touchpad);
+	DEFINE_ATTR_READER(gamepad_touchpad, finger);
+	DEFINE_ATTR_READER(gamepad_touchpad, x);
+	DEFINE_ATTR_READER(gamepad_touchpad, y);
+	DEFINE_ATTR_READER(gamepad_touchpad, pressure);
+
+	DEFINE_EVENT(gamepad_sensor, GamepadSensor);
+	DEFINE_ATTR_READER(gamepad_sensor, which);
+	DEFINE_ATTR_READER(gamepad_sensor, sensor);
+	DEFINE_ATTR_READER(gamepad_sensor, data);
+
+	DEFINE_EVENT(touch_finger, TouchFinger);
+	DEFINE_ATTR_READER(touch_finger, touch_id);
+	DEFINE_ATTR_READER(touch_finger, finger_id);
+	DEFINE_ATTR_READER(touch_finger, x);
+	DEFINE_ATTR_READER(touch_finger, y);
+	DEFINE_ATTR_READER(touch_finger, dx);
+	DEFINE_ATTR_READER(touch_finger, dy);
+	DEFINE_ATTR_READER(touch_finger, pressure);
+	DEFINE_ATTR_READER(touch_finger, window_id);
+
+	DEFINE_EVENT(clipboard, Clipboard);
+	DEFINE_ATTR_READER(clipboard, owner);
+	DEFINE_ATTR_READER(clipboard, mime_types);
+
+	DEFINE_EVENT(drop, Drop);
+	DEFINE_ATTR_READER(drop, window_id);
+	DEFINE_ATTR_READER(drop, x);
+	DEFINE_ATTR_READER(drop, y);
+	DEFINE_ATTR_READER(drop, source);
+	DEFINE_ATTR_READER(drop, data);
+
+	DEFINE_EVENT(audio_device, AudioDevice);
+	DEFINE_ATTR_READER(audio_device, which);
+	DEFINE_ATTR_READER(audio_device, recording);
+
+	DEFINE_EVENT(sensor, Sensor);
+	DEFINE_ATTR_READER(sensor, which);
+	DEFINE_ATTR_READER(sensor, sensor_timestamp);
+	DEFINE_ATTR_READER(sensor, data);
+
+	DEFINE_EVENT(pen_proximity, PenProximity);
+	DEFINE_ATTR_READER(pen_proximity, window_id);
+	DEFINE_ATTR_READER(pen_proximity, which);
+
+	DEFINE_EVENT(pen_touch, PenTouch);
+	DEFINE_ATTR_READER(pen_touch, window_id);
+	DEFINE_ATTR_READER(pen_touch, which);
+	DEFINE_ATTR_READER(pen_touch, pen_state);
+	DEFINE_ATTR_READER(pen_touch, x);
+	DEFINE_ATTR_READER(pen_touch, y);
+	DEFINE_ATTR_READER(pen_touch, eraser);
+	DEFINE_ATTR_READER(pen_touch, down);
+
+	DEFINE_EVENT(pen_button, PenButton);
+	DEFINE_ATTR_READER(pen_button, window_id);
+	DEFINE_ATTR_READER(pen_button, which);
+	DEFINE_ATTR_READER(pen_button, pen_state);
+	DEFINE_ATTR_READER(pen_button, button);
+	DEFINE_ATTR_READER(pen_button, down);
+
+	DEFINE_EVENT(pen_motion, PenMotion);
+	DEFINE_ATTR_READER(pen_motion, window_id);
+	DEFINE_ATTR_READER(pen_motion, which);
+	DEFINE_ATTR_READER(pen_motion, pen_state);
+	DEFINE_ATTR_READER(pen_motion, x);
+	DEFINE_ATTR_READER(pen_motion, y);
+
+	DEFINE_EVENT(pen_axis, PenAxis);
+	DEFINE_ATTR_READER(pen_axis, window_id);
+	DEFINE_ATTR_READER(pen_axis, which);
+	DEFINE_ATTR_READER(pen_axis, pen_state);
+	DEFINE_ATTR_READER(pen_axis, x);
+	DEFINE_ATTR_READER(pen_axis, y);
+	DEFINE_ATTR_READER(pen_axis, axis);
+	DEFINE_ATTR_READER(pen_axis, value);
+
+	DEFINE_EVENT(camera_device, CameraDevice);
+	DEFINE_ATTR_READER(camera_device, which);
+
+	DEFINE_EVENT(render, Render);
+	DEFINE_ATTR_READER(render, window_id);
+#undef DEFINE_ATTR_READER
+#undef DEFINE_EVENT
 }

@@ -8,7 +8,9 @@
 
 namespace euler::app {
 
-void init_game_event(util::Reference<State> state);
+extern const mrb_data_type EVENT_TYPE;
+
+void init_app_event(util::Reference<State> state);
 mrb_value sdl_event_to_mrb(util::Reference<State> state,
     const SDL_Event &event);
 

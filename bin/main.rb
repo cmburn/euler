@@ -5,6 +5,7 @@ class Game < Euler::App::State
   def load
     @tick = 0
     @time = 0.0
+    @seconds = 0
   end
 
   def update(dt)
@@ -12,7 +13,8 @@ class Game < Euler::App::State
     # log.info("#{@tick}")
     if @time >= 1.0
       @time = 0.0
-      log.info "FPS: #{system.fps.round(3)}"
+      @seconds += 1
+      log.info("FPS: #{system.fps.round(1)}")
     end
   end
 

@@ -59,7 +59,8 @@ sdl_init_flags()
 	return flags;
 }
 
-static void assert_state_integrity(mrb_state *mrb)
+static void
+assert_state_integrity(mrb_state *mrb)
 {
 	static mrb_state *first_state = nullptr;
 	if (first_state == nullptr) first_state = mrb;
@@ -90,7 +91,7 @@ euler::app::State::set_ivs()
 {
 	if (!mrb_nil_p(_attributes.system))
 		mrb_gc_unregister(_mrb, _attributes.system);
-	const auto system_data = Data_Wrap_Struct(_mrb, _euler.game.system,
+	const auto system_data = Data_Wrap_Struct(_mrb, _euler.app.system,
 	    &SYSTEM_TYPE, system().wrap());
 	_attributes.system = mrb_obj_value(system_data);
 	mrb_gc_register(_mrb, _attributes.system);
@@ -136,7 +137,7 @@ euler::app::State::verify_gv_state()
 		log()->error("Global variable '$state' is not defined");
 		return false;
 	}
-	if (!mrb_obj_is_kind_of(_mrb, var, _euler.game.state)) {
+	if (!mrb_obj_is_kind_of(_mrb, var, _euler.app.state)) {
 		log()->error("Global variable '$state' does not inherit from "
 			     "Euler::Game::State");
 		return false;
@@ -194,17 +195,17 @@ euler::app::State::app_update(const float dt)
 bool
 euler::app::State::app_input([[maybe_unused]] const SDL_Event &event)
 {
-	assert_state_integrity(_mrb);
-	return true;
-#if 0
+	_window->test_gui();
+
 	if (!_methods.input)
 		return static_cast<SDL_EventType>(event.type) == SDL_EVENT_QUIT;
 	try {
 		const auto arg = sdl_event_to_mrb(util::Reference(this), event);
+		assert(!mrb_nil_p(arg));
 		mrb_funcall_id(_mrb, _attributes.self, MRB_SYM(input), 1, arg);
 		if (_mrb->exc != nullptr) {
 			_log->error("Exception in input: {}",
-				exception_string().value());
+			    exception_string().value());
 			_mrb->exc = nullptr;
 			return false;
 		}
@@ -215,11 +216,9 @@ euler::app::State::app_input([[maybe_unused]] const SDL_Event &event)
 	} catch (mrb_jmpbuf *e) {
 		if (e != (_mrb->jmp)) throw e;
 		_log->error("Unhandled mruby exception in input: {}",
-			exception_string().value());
+		    exception_string().value());
 		return false;
 	}
-	return static_cast<SDL_EventType>(event.type) == SDL_EVENT_QUIT;
-#endif
 }
 
 bool
@@ -338,7 +337,7 @@ euler::app::State::load_core()
 	log()->debug("Creating window");
 	_window = util::make_reference<Window>(_log, _config.progname);
 	log()->debug("Initializing Vulkan");
-	_renderer = util::make_reference<vulkan::Renderer>();
+	_renderer = util::make_reference<vulkan::Renderer>(log());
 	_renderer->initialize(_window);
 
 	log()->debug("Initializing interpreter");
@@ -358,7 +357,7 @@ euler::app::State::load_core()
 	init_graphics(self);
 	init_gui(self);
 	init_app(self);
-	const auto data = Data_Wrap_Struct(_mrb, _euler.game.state, &STATE_TYPE,
+	const auto data = Data_Wrap_Struct(_mrb, _euler.app.state, &STATE_TYPE,
 	    self.wrap());
 	_attributes.self = mrb_obj_value(data);
 	mrb_gc_register(_mrb, _attributes.self);
@@ -433,8 +432,8 @@ euler::app::State::loop(int &exit_code)
 {
 	try {
 		// return wrap_call<bool>([&]() {
-			return update(exit_code); //
-		// });
+		return update(exit_code); //
+					  // });
 	} catch (const std::exception &e) {
 		_log->error("Unhandled exception in loop: {}", e.what());
 		exit_code = EXIT_FAILURE;
@@ -452,19 +451,25 @@ euler::app::State::update(int &exit_code)
 	assert(util::is_main_thread());
 	const auto gc_idx = mrb_gc_arena_save(_mrb);
 	system()->tick();
-	SDL_Event e;
-	while (SDL_PollEvent(&e)) {
-		_log->debug("Received event {}", e.type);
-		if (e.type == SDL_EVENT_QUIT) {
-			_log->info("Received quit event, exiting loop");
-			exit_code = 0;
-			return false;
-		}
-		if (_methods.input && !app_input(e)) return false;
+	auto fn = [&](const SDL_Event &ev) {
+		//
+		return !_methods.draw || app_input(ev);
+	};
+	if (SDL_Event e; !_window->poll_event(e, fn)) {
+		exit_code = EXIT_FAILURE;
+		return false;
 	}
 	assert(_methods.update);
 	if (!app_update(_system->dt())) return false;
 	mrb_gc_arena_restore(_mrb, gc_idx);
+	_window->draw(exit_code, [&](int &retval) {
+		if (_methods.draw && !app_draw()) {
+			retval = EXIT_FAILURE;
+			return false;
+		}
+		return true;
+	});
+
 	if (_methods.draw && !app_draw()) return false;
 	return true;
 }
