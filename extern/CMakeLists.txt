@@ -34,11 +34,20 @@ set(MRUBY_LIBRARIES
 
 target_include_directories(mruby INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/mruby/build/host/include
+        -I${CMAKE_CURRENT_SOURCE_DIR}/mruby/build/host/include 
+        -I${CMAKE_CURRENT_SOURCE_DIR}/mruby/build/host/include/mruby/gems/mruby-time/include 
+        -I${CMAKE_CURRENT_SOURCE_DIR}/mruby/build/host/include/mruby/gems/mruby-io/include
 )
 
 target_compile_definitions(mruby INTERFACE
-        MRB_USE_CXX_ABI
         MRB_USE_CXX_EXCEPTION
+        MRB_USE_CXX_ABI
+        MRB_USE_SET
+        HAVE_MRUBY_IO_GEM
+        MRB_USE_RATIONAL
+        MRB_USE_COMPLEX
+        MRB_USE_BIGINT
+        MRB_USE_DEBUG_HOOK
 )
 
 target_link_libraries(mruby INTERFACE ${MRUBY_LIBRARIES})
