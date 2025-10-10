@@ -49,11 +49,10 @@ euler::vulkan::Surface::test_gui()
 		NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_CLOSABLE)) {
 		nk_layout_row_static(vk2dGuiContext(), 30, 80, 1);
 		if (nk_button_label(vk2dGuiContext(), "button")) {
-			op = (op + 1) % 2;
+			log()->info("Button pressed!");
 		}
 	}
 	nk_end(vk2dGuiContext());
-	if (op == 1) log()->info("Button pressed!");
 }
 
 /* ReSharper disable once CppMemberFunctionMayBeStatic */

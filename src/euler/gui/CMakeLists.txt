@@ -48,4 +48,5 @@ target_compile_options(euler_gui PRIVATE ${EULER_COMPILE_OPTIONS})
 
 target_link_libraries(euler_gui PRIVATE
         euler_gui_nuklear
+        VK2D
 )

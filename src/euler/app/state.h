@@ -218,20 +218,9 @@ public:
 	T
 	wrap_call(const std::function<T()> &fn)
 	{
-		mrb_jmpbuf jmp, *prev_jmp = _mrb->jmp;
+		mrb_jmpbuf jmp = {}, *prev_jmp = _mrb->jmp;
 		/* ReSharper disable once CppDFALocalValueEscapesFunction */
 		_mrb->jmp = &jmp;
-		// try {
-		// 	T ans = fn();
-		// 	_mrb->jmp = prev_jmp;
-		// 	return ans;
-		// } catch (mrb_jmpbuf *e) {
-		// 	_mrb->jmp = prev_jmp;
-		// 	if (e != (&jmp)) throw e;
-		// } catch (...) {
-		// 	_mrb->jmp = prev_jmp;
-		// 	throw;
-		// }
 		MRB_TRY(mrb()->jmp)
 		{
 			auto value = fn();

@@ -195,10 +195,9 @@ euler::app::State::app_update(const float dt)
 bool
 euler::app::State::app_input([[maybe_unused]] const SDL_Event &event)
 {
-	_window->test_gui();
-
-	if (!_methods.input)
-		return static_cast<SDL_EventType>(event.type) == SDL_EVENT_QUIT;
+	const auto type = static_cast<SDL_EventType>(event.type);
+	const auto is_quit = type == SDL_EVENT_QUIT;
+	if (!_methods.input) return is_quit;
 	try {
 		const auto arg = sdl_event_to_mrb(util::Reference(this), event);
 		assert(!mrb_nil_p(arg));
@@ -209,7 +208,7 @@ euler::app::State::app_input([[maybe_unused]] const SDL_Event &event)
 			_mrb->exc = nullptr;
 			return false;
 		}
-		return true;
+		return !is_quit;
 	} catch (const std::exception &e) {
 		_log->error("Unhandled exception in input: {}", e.what());
 		return false;
@@ -225,6 +224,7 @@ bool
 euler::app::State::app_draw()
 {
 	assert_state_integrity(_mrb);
+	_window->test_gui();
 	if (!_methods.draw) return true;
 	try {
 		assert_state();
@@ -455,10 +455,8 @@ euler::app::State::update(int &exit_code)
 		//
 		return !_methods.draw || app_input(ev);
 	};
-	if (SDL_Event e; !_window->poll_event(e, fn)) {
-		exit_code = EXIT_FAILURE;
-		return false;
-	}
+	if (SDL_Event e; !_window->poll_event(e, fn)) return false;
+
 	assert(_methods.update);
 	if (!app_update(_system->dt())) return false;
 	mrb_gc_arena_restore(_mrb, gc_idx);
@@ -470,7 +468,6 @@ euler::app::State::update(int &exit_code)
 		return true;
 	});
 
-	if (_methods.draw && !app_draw()) return false;
 	return true;
 }
 

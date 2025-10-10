@@ -55,6 +55,12 @@ public:
 	bool poll_event(SDL_Event &e,
 	    const std::function<bool(SDL_Event &)> &fn);
 
+	virtual bool
+	process_gui_event(SDL_Event &)
+	{
+		return true;
+	}
+
 private:
 	friend struct InputGuard;
 

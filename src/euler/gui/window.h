@@ -34,6 +34,8 @@ public:
 	void button(const char *title,
 	    const std::function<void(const util::Reference<Button> &)> &fn);
 
+	bool process_gui_event(SDL_Event &e) override;
+
 	const nk_context *
 	context() const
 	{

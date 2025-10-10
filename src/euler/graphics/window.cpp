@@ -5,8 +5,6 @@
 
 #include "euler/graphics/window.h"
 
-
-
 euler::graphics::Window::Window(const util::Reference<util::Logger> &log,
     const std::string &title, const int width, const int height,
     const SDL_WindowFlags flags)
@@ -45,6 +43,9 @@ euler::graphics::Window::poll_event(SDL_Event &e,
 		_log->debug("Received event {}", e.type);
 		quit = !fn(e);
 		if (quit) break;
+		if (process_gui_event(e)) continue;
+		quit = true;
+		break;
 	}
 	end_input();
 	return !quit;
@@ -61,4 +62,3 @@ euler::graphics::Window::end_input()
 {
 	end_gui_input();
 }
-
